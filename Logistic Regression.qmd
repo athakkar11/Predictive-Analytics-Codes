@@ -1,0 +1,448 @@
+---
+title: "logistic regression"
+format: html
+editor: visual
+---
+
+## Quarto
+
+Quarto enables you to weave together content and executable code into a finished document. To learn more about Quarto see <https://quarto.org>.
+
+## Running Code
+
+When you click the **Render** button a document will be generated that includes both content and the output of embedded code. You can embed code like this:
+
+```{r}
+1 + 1
+```
+
+You can add options to executable code like this
+
+```{r}
+#| echo: false
+2 * 2
+```
+
+The `echo: false` option disables the printing of code (only output is displayed).
+
+
+Logistic regression  20 June 2023 
+We focus on binary models in this class
+
+
+```{r}
+setwd('/Users/anshitathakkar/Documents/Predictive Analytics')
+data = read.csv('/Users/anshitathakkar/Documents/Predictive Analytics/ebay.csv', stringsAsFactors = T)
+data
+```
+```{r}
+summary(data)
+```
+
+```{r}
+library(caTools)
+set.seed(617)
+split = sample.split(data$sold,SplitRatio = 0.7)
+train = data[split,]
+test = data[!split,]
+str(train)
+```
+
+```{r}
+head(train)
+```
+
+```{r}
+names(train)
+```
+
+```{r}
+tapply(train$startprice,train$sold,mean)
+```
+
+```{r}
+library(ggplot2)
+ggplot(data=train,aes(x=factor(sold),y=startprice,fill=factor(sold)))+
+  geom_bar(stat='summary',fun='mean')+
+  coord_flip()
+```
+
+```{r}
+library(dplyr)
+train%>%
+  mutate(sold = factor(sold,labels = c('not sold','sold')))%>%
+  group_by(sold)%>%
+  summarize(avg_startprice = mean(startprice))%>%
+  ungroup()%>%
+  ggplot(aes(x=sold,y=avg_startprice,fill=sold))+
+  geom_col()+
+  geom_text(aes(x=sold,y=avg_startprice,
+                label=paste0('$',round(avg_startprice,2),'   ')),
+            nudge_y=25)+
+  ylab('start price')+
+  guides(fill=F)+
+  coord_flip()+
+  theme_bw()
+```
+
+Biddable - this is a binary variable 
+
+```{r}
+tapply(train$sold,train$biddable,mean) #this is the porbability of an ipad selling based on if it is billable or not 
+```
+
+```{r}
+ggplot(data=train,aes(x=biddable,y=sold,fill=biddable))+
+  geom_bar(stat='summary',fun='mean')+
+  guides(fill=F)+
+  coord_flip()
+```
+
+
+Conditions - there are three conditions influencing the selling of an ipad
+
+```{r}
+tapply(train$sold,train$condition,mean)
+```
+
+
+```{r}
+ggplot(data=train,aes(x=condition,y=sold,fill=condition))+
+  geom_bar(stat='summary',fun='mean')+
+  guides(fill=F)+
+  coord_flip()
+```
+
+Cellular
+
+```{r}
+tapply(train$sold,train$cellular,mean) #because the variance is not greatly different, this may not be a predictive variable 
+```
+
+```{r}
+ggplot(data=train,aes(x=cellular,y=sold,fill=cellular))+
+  geom_bar(stat='summary',fun='mean')+
+  guides(fill=F)+
+  coord_flip()
+```
+
+Carrier
+
+```{r}
+tapply(train$sold,train$carrier,mean)
+```
+
+
+```{r}
+ggplot(data=train,aes(x=carrier,y=sold,fill=carrier))+
+  geom_bar(stat='summary',fun='mean')+
+  guides(fill=F)+
+  coord_flip()
+```
+Storage
+
+
+```{r}
+
+tapply(train$sold,train$carrier,mean)
+```
+
+
+```{r}
+ggplot(data=train,aes(x=carrier,y=sold,fill=carrier))+
+  geom_bar(stat='summary',fun='mean')+
+  guides(fill=F)+
+  coord_flip()
+```
+Color
+
+```{r}
+tapply(train$sold,train$color,mean)
+```
+
+```{r}
+ggplot(data=train,aes(x=color,y=sold))+
+  geom_bar(stat='summary',
+           fun='mean',
+           fill=c('black','gold','grey40','purple','white'))+
+  coord_flip()
+```
+
+Storage
+
+```{r}
+tapply(train$sold,train$storage,mean)
+```
+
+```{r}
+ggplot(data=train,aes(x=storage,y=sold,fill=storage))+
+  geom_bar(stat='summary',fun='mean')+
+  guides(fill=F)+
+  coord_flip()
+```
+
+
+Productline
+
+```{r}
+
+tapply(train$sold,train$productline,mean)
+
+```
+
+```{r}
+ggplot(data=train,aes(x=productline,y=sold))+
+  geom_bar(stat='summary',fun='mean')+
+  coord_flip()
+```
+
+
+No description
+
+```{r}
+tapply(train$sold,train$noDescription,mean)
+```
+
+```{r}
+ggplot(data=train,aes(x=noDescription,y=sold,fill=noDescription))+
+  geom_bar(stat='summary',fun='mean')+
+  guides(fill=F)+
+  coord_flip()
+```
+99 ending
+
+```{r}
+tapply(train$sold,train$startprice_99end,mean)
+```
+
+```{r}
+ggplot(data=train,aes(x=startprice_99end,y=sold,fill=startprice_99end))+
+  geom_bar(stat='summary',fun='mean')+
+  guides(fill=F)+
+  coord_flip()
+```
+
+Uppercase description
+
+```{r}
+tapply(train$upperCaseDescription,train$sold,mean)
+```
+
+```{r}
+ggplot(data=train,aes(x=factor(sold),y=upperCaseDescription,fill=factor(sold)))+
+  geom_bar(stat='summary',fun='mean')+
+  guides(fill=F)+
+  coord_flip()
+```
+
+charCount description
+
+```{r}
+tapply(train$charCountDescription,train$sold,mean)
+```
+
+```{r}
+ggplot(data=train,aes(x=factor(sold),y=charCountDescription,fill=factor(sold)))+
+  geom_bar(stat='summary',fun='mean')+
+  guides(fill=F)+
+  coord_flip()
+```
+
+
+MODELS
+
+We have used LM so far, so now we are going to use glm
+
+```{r}
+model = glm(sold~startprice,data=train,family='binomial')
+summary(model)
+#When price goes up, the likelihood of selling goes down
+```
+
+```{r}
+predict(model) #this gives us predicitons for every single bit of our data
+```
+
+```{r}
+predict(model)
+data.frame(sold = train$sold, startprice = train$startprice, pred = predict(model))
+```
+
+this means that when the ipad price increases the less likely it is to sell.
+
+```{r}
+?predict.glm()
+```
+
+
+```{r}
+library(dplyr)
+data.frame(sold = train$sold, startprice = train$startprice, pred = predict(model, type = 'response')) |>
+  mutate(pred_binary = as.integer(pred>0.5)) #we created a binary outcome; sold is the true value
+```
+
+Make sure you understand model specificity and model sensitivity in relation to the above 
+
+The industry determines whether specificity or sensitivity. If the cost of something going wrong is high, then specificity is important. In marketing sensitivity is more important.
+
+Accuracy?
+
+```{r}
+pred = predict(model, type = 'response')
+table(train$sold, as.integer(pred>0.5)) #as integer makes it two numbers
+```
+
+```{r}
+pred = predict(model, type = 'response')
+table(sold = train$sold, as.integer(pred>0.5)) #as integer makes it two numbers
+(510+443) / (510+443+191+159)
+```
+The above shows that we are correct 510 + 443 times 
+
+```{r}
+(ct[1,1] + ct[2,2])/nrow(train)
+```
+
+
+```{r}
+price = 100
+exp(1.44 - 0.008*price) / (1 + exp(1.44 - 0.008*price))
+```
+
+OR we can do this
+
+```{r}
+predict(model1,newdata=data.frame(startprice=200),type='response') 
+```
+
+OR
+
+```{r}
+predict(model, type='response', newdata = data.frame(startprice=100))
+```
+
+An increase in price can decrease probability in amount
+
+```{r}
+predict(model, type='response', newdata = data.frame(startprice=101))
+```
+
+
+```{r}
+log(100) #the defaul in r is log to the base e 
+```
+
+```{r}
+exp(log(100))
+```
+
+When startprice goes up by $1, the likelihood of an ipad selling goes down by 
+
+```{r}
+(exp(-0.0082025) - 1)*100
+
+```
+
+```{r}
+summary(model1)$coef[2]
+```
+
+Specifically, what is the percent increase in likelihood of an iPad being sold with a $1 increase in startprice?
+
+```{r}
+100*(exp(summary(model1)$coef[2])-1)
+```
+
+Another model
+
+
+```{r}
+model2 = glm(sold~charCountDescription, data = train, family = 'binomial')
+summary(model2)
+```
+When number of char in description goes up by 1 character, what happens to likelihood selling?
+
+```{r}
+(exp(model2$coefficients[2]) - 1)*100
+```
+
+What is the probability of an iPad selling if the description is 100 characters?
+What is the probability of an iPad selling if the description is 200 characters?
+
+
+```{r}
+names(model2)
+predict(model2)
+
+predict(model2,newdata=data.frame(charCountDescription=100),type='response') 
+predict(model2,newdata=data.frame(charCountDescription=200),type='response')
+```
+
+Model with color
+
+```{r}
+model = glm(sold~color, data = train, family = 'binomial')
+summary(model)
+```
+
+Yes color does have an impact on an ipad selling. If one varaible is significant then it is significant
+
+Compare the likelihood of sale of selling "Gold" iPad to a "Black" iPad?
+Note: in our data B / black comes first
+
+```{r}
+(exp(-1.06005) - 1)*100
+100*(exp(summary(model)$coef[2])-1)
+```
+
+
+```{r}
+model = glm(sold~ .-UniqueID, data = train, family = 'binomial') #the .- removes UniqueID as a variable
+summary(model)
+
+```
+
+```{r}
+predict(model, type = 'response')
+as.integer(pred>0.5)
+ct = table(sold = train$sold, prediction = as.integer(pred>0.5)); ct
+```
+The focus has been 0.5. It is a risk metric. 
+
+```{r}
+install.packages('ROCR')
+library(ROCR)
+
+performance(prediction.obj = prediction(predictions =pred,lables= train$sold), measure = 'auc')@y.values #why is this not working 
+
+library(ROCR)
+performance(prediction.obj = prediction(predictions =pred,labels = train$sold),measure = 'auc')@y.values
+```
+
+
+ROC (Receiver, Operator, Characteristic curve)
+
+
+```{r}
+plot(performance(prediction.obj = prediction(predictions =pred,labels = train$sold),'tpr','fpr'))
+```
+
+Modify this code to make it work for the test sample
+
+```{r}
+pred_test = predict(model, type='response', newdata = test) #add test
+performance(prediction.obj = prediction(predictions =pred_test,labels = test$sold),
+            measure = 'auc')@y.values
+```
+
+
+
+```{r}
+#test sample AUC
+model4 = glm(sold~.-UniqueID, data = test, family = 'binomial')
+pred_test = predict(model4, type = 'response', newdata = test)
+performance(prediction.obj = prediction(predictions = pred_test,labels = test$sold), measure = 'auc')@y.values
+
+
+```
+

@@ -1,0 +1,185 @@
+---
+title: "Assignment 2B"
+format: html
+editor: visual
+---
+
+## Quarto
+
+Quarto enables you to weave together content and executable code into a finished document. To learn more about Quarto see <https://quarto.org>.
+
+## Running Code
+
+When you click the **Render** button a document will be generated that includes both content and the output of embedded code. You can embed code like this:
+
+```{r}
+1 + 1
+```
+
+You can add options to executable code like this
+
+```{r}
+#| echo: false
+2 * 2
+```
+
+The `echo: false` option disables the printing of code (only output is displayed). Assignment 2B
+
+```{r}
+library(dplyr); library(readr); library(tidyr)
+```
+
+```{r}
+sales = data.frame(company = c("Apple","Google","Amazon","Microsoft"),
+           year_2017 = c(229234,110855,177866,96571),
+           year_2018 = c(65595,136819,232887,110360),
+           year_2019 = c(260174,161857,280522,125843),
+           year_2020 = c(274515,182527,386064,143015),
+           year_2021 = c(365817,257637,469822,168088))
+```
+
+```{r}
+income = data.frame(company = c("Apple","Google","Amazon","Microsoft"),
+           year_2017 = c(61344,26178,4106,28970),
+           year_2018 = c(70898,27524,12421,35011),
+           year_2019 = c(63930,34231,14541,42933),
+           year_2020 = c(66288,41224,22899,52826),
+           year_2021 = c(108949,78714,24879,69903))
+```
+
+```{r}
+sales
+```
+
+```{r}
+income
+```
+
+Q1 This data is in a format which limits the types of analysis that can be run and functions that can be applied. Please select the option that will transform results into a meaningful tall format with model in column 1, metric (which takes on values 'r2', 'cp', and 'rss') in column 2 and value (which contains numbers representing the three metrics) in column 3. The final dataset should have 30 rows and 3 columns.
+
+```{r}
+model = paste('model',1:10,sep = '')
+r2 = c(0.849,0.782,0.853,0.853,0.856,0.855,0.859,0.856,0.859,0.859)
+cp = c(3785.13,29492.891,2216.066,2515.617,1122.912,1729.176,11.453,1108.412,5.883,11.752)
+rss = c(129345695398,186953511457,125825141230,126496397331,123371039554,124729600876,120875920936,123334065616,120858956753,120872109331)
+results = data.frame(model, r2, cp, rss)
+```
+
+```{r}
+results
+```
+
+```{r}
+results %>% pivot_longer('model', 'metric', 'value')
+results %>% pivot_longer(cols = cp:rss, names_to = 'metric', values_to = 'value')
+results %>% pivot_longer(cols = 2:4, names_to = 'metric', values_to = 'value')
+results%>%  pivot_wider(names_from = model,values_from = r2:rss)
+```
+
+Q2 What is the operating margin ratio (=income/sales) for Amazon in 2017?
+
+```{r}
+income
+```
+
+```{r}
+sales
+```
+
+```{r}
+library(Lahman)
+library(printr)
+```
+
+```{r}
+income_longer = income%>% 
+  pivot_longer(cols = 2:6, names_to = 'year', values_to = 'sale')
+
+sales_longer = sales%>%
+  pivot_longer(cols = 2:6, names_to = 'year', values_to = 'income')
+
+income_longer
+sales_longer
+
+income_longer %>% 
+  inner_join(sales_longer, by = c('company' = 'company', 'year' = 'year'))%>%
+  filter(year == 'year_2017', company == 'Amazon')%>%
+  mutate(operating_margin_ratio = (sale/income)) #Why si this s
+
+4106/177866
+
+
+
+  
+  
+```
+
+What is the operating margin ratio (=income/sales) for Amazon in 2021?
+
+```{r}
+income_longer %>% 
+  inner_join(sales_longer, by = c('company' = 'company', 'year' = 'year'))%>%
+  filter(year == 'year_2021', company == 'Amazon')%>%
+  mutate(operating_margin_ratio = (income/sale))
+
+```
+
+```{r}
+24879/469822
+```
+
+Q4. What is the operating margin ratio (=income/sales) for Google in 2017?
+
+```{r}
+income_longer %>% 
+  inner_join(sales_longer, by = c('company' = 'company', 'year' = 'year'))%>%
+  filter(year == 'year_2017', company == 'Google')%>%
+  mutate(operating_margin_ratio = (income/sale))
+
+26178/110855
+```
+
+Q. 5
+
+```{r}
+income_longer %>% 
+  inner_join(sales_longer, by = c('company' = 'company', 'year' = 'year'))%>%
+  filter(year == 'year_2021', company == 'Google')%>%
+  mutate(operating_margin_ratio = (income/sale))
+```
+
+```{r}
+78714/257637
+```
+
+Q 6. What is the average operating margin ratio (=income/sales) across the four companies in 2017?
+
+```{r}
+income
+```
+
+```{r}
+sales
+```
+
+```{r}
+new_table <- income_longer %>% inner_join(sales_longer, by = c('company' = 'company', 'year' = 'year'))%>% filter(year == 'year_2017')%>% mutate(operating_margin_ratio = (sale/income))
+
+new_table
+```
+
+```{r}
+mean(new_table$operating_margin_ratio)
+```
+
+What is the average operating margin ratio (=income/sales) across the four companies in 2021?
+
+```{r}
+new_table2 <- income_longer %>% inner_join(sales_longer, by = c('company' = 'company', 'year' = 'year'))%>% filter(year == 'year_2021')%>% mutate(operating_margin_ratio = (sale/income))
+
+new_table2
+```
+
+```{r}
+mean(new_table2$operating_margin_ratio)
+```

@@ -1,0 +1,174 @@
+---
+title: "Assignment 4C"
+format: html
+editor: visual
+---
+
+## Quarto
+
+Quarto enables you to weave together content and executable code into a finished document. To learn more about Quarto see <https://quarto.org>.
+
+## Running Code
+
+When you click the **Render** button a document will be generated that includes both content and the output of embedded code. You can embed code like this:
+
+```{r}
+1 + 1
+```
+
+You can add options to executable code like this
+
+```{r}
+#| echo: false
+2 * 2
+```
+
+The `echo: false` option disables the printing of code (only output is displayed).
+
+```{r}
+taxi = read.csv('/Users/anshitathakkar/Documents/Predictive Analytics/taxi.csv')
+summary(taxi)
+str(taxi)
+taxi
+```
+
+
+Question 1 (2 points) 
+ 
+Generally speaking, including a larger number of meaningful predictors will improve the quality of predictions. It is reasonable to expect the following predictors to influence tip paid: number of passengers (passenger_count), fare amount (fare_amount), hour of the day of the ride (pickup_hour), whether the trip occurred in the beginning, middle or end of the month (period_of_month), and day of the week for the trip (pickup_day). Use these variables in a multiple regression to predict tip_amount. Call this model5.
+
+Which of the following variables are significant predictors of tip_amount? Please note, a categorical predictor variable is statistically significant if even one of the dummy variables representing it is statistically significant. Select one or more correct answers.
+Question 1 options:
+
+pickup_hour
+
+pickup_day
+
+period_of_month
+
+fare_amount
+
+passenger_count
+
+model1 = lm(earn~age,data=train)
+paste('earn','=',round(coef(model1)[1],0),'+',round(coef(model1)[2],0),'age')
+
+```{r}
+library(caret)
+set.seed(1031)
+split = createDataPartition(y=earning$earn,p = 0.7,list = F,groups = 20)
+train = earning[split,]
+test = earning[-split,]
+```
+
+
+```{r}
+names(taxi)
+model5 = lm(tip_amount~passenger_count+fare_amount+pickup_hour+period_of_month+pickup_day,data=train)
+summary(model5)
+
+```
+Question 3 (2 points) 
+ 
+What is the RMSE for model5?
+
+```{r}
+pred5 = predict(model5)
+rmse5 = sqrt(mean((pred5-train$tip_amount)^2)); rmse5
+
+
+```
+
+
+
+Question 4 (2 points) 
+ 
+Now, let us explore non-linear relationships of fare_amount and pickup_hour by including polynomial terms. Modify model5 by replacing fare_amount with poly(fare_amount, 2) and pickup_hour with poly(pickup_hour, 2). Keep the rest of the model the same. Call this model6.
+
+In model6, which of the following variables are significant predictors of tip_amount. Select one or more correct answers.
+Question 4 options:
+
+period_of_month
+
+poly(fare_amount,2)2
+
+poly(fare_amount,2)1
+
+pickup_day
+
+passenger_count
+
+poly(pickup_hour,2)1
+
+poly(pickup_hour,2)2
+
+```{r}
+model6 = lm(tip_amount~passenger_count+period_of_month+pickup_day + poly(fare_amount, 2) + poly(pickup_hour, 2,data=train) # why not working 
+
+model6 = lm(tip_amount~passenger_count+period_of_month+poly(fare_amount, 2)+	
+              poly(pickup_hour, 2)+pickup_day,data=train)
+summary(model6)
+
+```
+
+Question 5 (2 points) 
+ 
+What is the RMSE for model6?
+```{r}
+pred6 = predict(model6)
+rmse6 = sqrt(mean((pred6-train$tip_amount)^2)); rmse6
+
+```
+
+ 
+ 
+Use the variables in model5, to fit a Generalized Additive Model using method="REML". Use smoothing functions for fare_amount [i.e.,s(fare_amount)] and pickup_hour [i.e., s(pickup_hour)]. Leave the other variables unchanged. Call this model7.
+
+In model7, which of the following variables are significant predictors of tip_amount. Select one or more correct answers.
+Question 6 options:
+
+period_of_month
+
+pickup_day
+
+s(pickup_hour)
+
+passenger_count
+
+s(fare_amount)
+
+
+```{r}
+library(mgcv)
+model7 = gam(tip_amount~passenger_count+period_of_month+s(fare_amount)+	
+               s(pickup_hour)+pickup_day,method = 'REML', data = train)
+summary(model7)
+
+```
+
+
+```{r}
+pred7 = predict(model7)
+rmse7 = sqrt(mean((pred7-train$tip_amount)^2)); rmse7
+```
+
+Q 8 The litmus test for model performance is how it performs on data that was not used to estimate it. Model5 is the multiple regression model with linear terms. Compute the RMSE for model5 on the test sample.
+```{r}
+pred_test5 = predict(model5,newdata=test)
+rmse_test5 = sqrt(mean((pred_test5 - test$tip_amount)^2))
+rmse_test5
+
+```
+
+
+Q 9 GAM (model7) did better than the linear model (model5) on the train sample. Let us see if the flexible GAM model outperforms the linear model in the test sample. Compute the RMSE for model7 on the test sample.
+
+```{r}
+pred_test7 = predict(model7,newdata=test)
+rmse_test7 = sqrt(mean((pred_test7 - test$tip_amount)^2))
+rmse_test7
+```
+
+
+
+

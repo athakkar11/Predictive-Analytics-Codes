@@ -1,0 +1,212 @@
+---
+title: "Assignment 2A"
+format: html
+editor: visual
+---
+
+## Quarto
+
+Quarto enables you to weave together content and executable code into a finished document. To learn more about Quarto see <https://quarto.org>.
+
+## Running Code
+
+When you click the **Render** button a document will be generated that includes both content and the output of embedded code. You can embed code like this:
+
+```{r}
+1 + 1
+```
+
+You can add options to executable code like this
+
+```{r}
+#| echo: false
+2 * 2
+```
+
+The `echo: false` option disables the printing of code (only output is displayed).
+
+```{r}
+library(dplyr); library(lubridate); library(readr); library(stringr); library(forcats); library(tidyr)
+birthdays = read.csv('/Users/anshitathakkar/Documents/Predictive Analytics/president_birthdays.csv')
+heights = read.csv('/Users/anshitathakkar/Documents/Predictive Analytics/president_heights.csv')
+states = read.csv('/Users/anshitathakkar/Documents/Predictive Analytics/president_states.csv')
+
+birthdays
+
+```
+
+```{r}
+
+```
+
+```{r}
+heights
+```
+
+```{r}
+states
+```
+
+```{r}
+
+parse_number('ISO8601')
+
+birthdays
+
+library(lubridate); mdy(birthdays$birthday)
+library(lubridate); ymd(birthdays$birthday)
+as.Date(birthdays$birthday,format='%m / %d / %Y')
+as.Date(birthdays$birthday,format='%b / %d / %Y')
+```
+
+2
+
+```{r}
+parse_character('Name')
+as.character('Name')
+str_trim('Name')
+
+birthdays
+```
+
+```{r}
+birthdays|>
+  summarise(birthday)
+
+as.Date('4/7/1776',format='%d/%m/%Y')
+
+month(mdy('7/4/1776'),label = T)
+table(month(mdy('7/4/1776'),label = T))
+table(birthdays$birthday)
+```
+
+```{r}
+library(lubridate); library(readr); library(dplyr)
+
+birthdays %>%
+  mutate(birthday = mdy(birthdays$birthday))
+
+```
+
+```{r}
+birthdays %>%
+  mutate(birthday = mdy(birthdays$birthday))|>
+  separate(col = birthday, into = c('year', 'month', 'day', sep = '-'))
+  group_by(month(birthdays,))
+
+
+```
+
+```{r}
+birthdays
+```
+
+```{r}
+birthdays %>%
+  mutate(birthday = mdy(birthdays$birthday))%>%
+  mutate(birthday = dmy(birthdays$birthday))%>%
+  separate(col = location,into = c('country','continent'), sep = ',')%>%
+  mutate(continent = str_trim(str_to_title(continent)))%>%
+  select(country,continent,everything())
+
+library(tidyr)
+messy_data %>%
+  mutate(per_capita_dollars = parse_number(per_capita_dollars))%>%
+  mutate(per_capita_euros = parse_number(per_capita_euros, locale = locale(grouping_mark = '.')))%>%
+  mutate(national_day = mdy(national_day))%>%
+  mutate(national_day_alt = dmy(national_day_alt))%>%
+  separate(col = location,into = c('country','continent'), sep = ',')%>%
+  mutate(continent = str_trim(str_to_title(continent)))%>%
+  select(country,continent,everything())
+```
+
+```{r}
+ birthdays |>
+  mutate(month = month(mdy(birthday), label = T )) |>
+  group_by(month) |>
+  count(n()) |>
+  arrange(n)
+```
+
+```{r}
+heights
+```
+
+Q4. In the dataset, heights, the height of Presidents contain the unit in which height is expressed. As a result of this, it is not possible to use the data in the heights column for quantitative analysis.
+
+Run appropriate code to extract only the height in inches and save as a new variable. What is the average height?
+
+```{r}
+parse_number(heights$height)
+heights
+```
+
+```{r}
+
+parse_number('74 inches')
+parse_number(heights$height)
+
+heights_in_inches = parse_number(heights$height)
+heights_in_inches
+
+mean(heights_in_inches)
+```
+
+Q5 In the dataset, heights, create a new variable containing height in cm. Use the conversion, 1 inch = 2.54 cm.
+
+What is the median height in cm?
+
+```{r}
+median(heights_in_inches)*2.54
+```
+
+Q6 In the dataset, heights, standardize height in inches such that mean is 0 and standard deviation is 1.
+
+What is President Joe Biden's standardized height?
+
+```{r}
+heights$heights_scaled <- scale(heights_in_inches)
+heights$heights_scaled
+heights
+```
+
+Q 7
+
+In the dataset height, bin height in inches into a categorical variable with the following four groups:
+
+Short: height\<=66 Average: 66 \< height \<= 69 Tall: 69 \< height \<= 72 Very Tall: height \> 72 Call this variable, height_cat4. Based on this new variable, height_cat4, how many Presidents are categorized as being "Very Tall"?
+
+```{r}
+heights$height_short = ifelse(test = (heights$height_in_inches <= 66), yes = 1,no = 0)
+heights$height_Average = ifelse(test = (heights$height_in_inches <=69 & heights$height_in_inches > 66), yes = 1,no = 0)
+heights$height_Tall = ifelse(test = (heights$height_in_inches <=72 & heights$height_in_inches > 69), yes = 1,no = 0)
+heights$height_VeryTall = ifelse(test = (heights$height_in_inches >= 72),yes = 1,no = 0)
+
+height_cat4 <- c(heights$height_short, heights$height_Average, heights$height_Tall, heights$height_VeryTall)
+
+height_cat4
+```
+
+```{r}
+library(dplyr); library(forcats)
+heights %>%
+       mutate(height_cat = fct_recode(.f = height_cat4, "Average" = "Short", "Average" = "Average","Tall" = "Tall","Very Tall" = "Very Tall"))
+
+heights
+```
+
+
+
+Class discussion
+```{r}
+updated_dataset = states
+updated_dataset
+library(readr)
+updated_dataset$Birth.State = str_trim(updated_dataset$Birth.State)
+```
+
+```{r}
+heights
+```
+
+

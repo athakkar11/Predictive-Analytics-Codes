@@ -1,0 +1,177 @@
+---
+title: "Linear Regression continued"
+format: html
+editor: visual
+---
+
+## Quarto
+
+Quarto enables you to weave together content and executable code into a finished document. To learn more about Quarto see <https://quarto.org>.
+
+## Running Code
+
+When you click the **Render** button a document will be generated that includes both content and the output of embedded code. You can embed code like this:
+
+```{r}
+1 + 1
+```
+
+You can add options to executable code like this
+
+```{r}
+#| echo: false
+2 * 2
+```
+
+The `echo: false` option disables the printing of code (only output is displayed).
+
+
+
+```{r}
+str(earning)
+
+earning = read.csv('/Users/anshitathakkar/Documents/Predictive Analytics/earning.csv')
+str(earning) #don't do this. First split the data and nly look at train data set
+
+ggplot(data=earning, aes(x = weight, y = earn))+
+  geom_point()+
+  geom_smooth(method = 'lm', se=F, color='tomato')+
+  coord_cartesian(ylim=c(0, 400000))+
+  scale_y_continuous(labels = scales::label_dollar())+
+  theme_bw()
+```
+
+```{r}
+model2 = lm(earn~weight, data = train)
+summary(model2)
+```
+```{r}
+pred = predict(model2)
+mse = mean((pred - train$earn)^2); mse
+rmse = sqrt(mean((pred - train$earn)^2)); rmse
+```
+
+
+
+MODEL 3: simple Refression - gender (because this is categorical, a box plot or bar chart with error bars is more appropriate)
+
+```{r}
+model3 = lm(earn~gender, data = train)
+summary(model3)
+```
+```{r}
+str(train)
+```
+earn_male = 38465 + 30583*gendermale = 38465 + 30583*1
+ear_female = 38465 + 30583*gendermale = 38465 + 30583*1*0
+```{r}
+#Formula for regression equation
+pred = predict(model3)
+
+data.frame(pred, train$gender)
+
+```
+As you can see above, there are only two predictions being made for males and females in the data 
+
+```{r}
+mse = mean((pred - train$earn)^2); mse
+rmse = sqrt(mean((pred - train$earn)^2)); rmse
+```
+
+
+
+ETHNICITY
+
+earn_Asian = 42426+9339*1 - 6368*0 + 9292*0 =
+etc etc
+
+Why aren't we using this moel?
+4246 is African American 
+
+It has everything to do with the p-value. This is less than 0.05 therefore the null hypothesis stands. it's not even worth considering it. We wouldn't interpret the model as none of the coefficients are significant 
+
+Intercept is the reference variable and under estimate standard is the itnercept and references to that intercept - asicans make more in x amount to the intercept
+
+
+```{r}
+model4 = lm(earn~ethnicity, data = train)
+summary(model4)
+```
+
+```{r}
+model5 = lm(earn~weight+gender+gender*weight, data = train)
+summary(model5)
+str(train)
+```
+
+```{r}
+model6 = lm(earn~., data = train)
+summary(model6)
+```
+
+```{r}
+pred = predict(model6)
+mse = mean((pred - train$earn)^2); mse
+rmse = sqrt(mean((pred - train$earn)^2)); rmse
+```
+
+In R an astrix mark is used to show you which variables are significant 
+When you look at all varaibles togehter as opposed to individually you can understand the impact on the outcome variable (earn) in the grand scheme of things. 
+
+Interpretation: When you want to interpret a regression model, you will only want to talk abotu the variables that are significant and the others have no effect. 
+
+
+
+```{r}
+ggplot(data=train,aes(x=age,y=earn))+
+  geom_point(color = 'gray50')+
+  geom_smooth(method = 'lm', se=F, color='tomato')+
+  geom_smooth(method = 'lm', formula = y~poly(x,2),se=F, color='green')+
+  geom_smooth(method = 'lm', formula = y~poly(x,3),se=F, color='blue')+
+  geom_smooth(method = 'lm', formula = y~poly(x,5),se=F, color='sienna')+
+  coord_cartesian(ylim=c(0,200000))+ 
+  scale_y_continuous(labels = scales::label_dollar())+ 
+  theme_bw()
+```
+
+We are trying to check which model is better?
+
+
+```{r}
+model7 =lm(earn~poly(age,2), data = train)
+summary(model7)
+```
+earn = 49819 + 166000*age - 380943*age^2
+
+```{r}
+pred = predict(model7)
+rmse = sqrt(mean((pred - train$earn)^2)); rmse
+```
+
+
+
+New topic:
+
+```{r}
+model1 = lm(earn~age, data = train)
+pred = predict(model1)
+rmse = sqrt(mean((pred - train$earn)^2)); rmse
+
+model7 =lm(earn~poly(age,8), data = train)
+pred = predict(model7)
+rmse = sqrt(mean((pred - train$earn)^2)); rmse
+
+```
+
+```{r}
+pred_test = predict(model1, newdata = test)
+rmse = sqrt(mean((pred_test - test$earn)^2)); rmse
+
+pred_test = predict(model7, newdata = test)
+rmse = sqrt(mean((pred_test - test$earn)^2)); rmse
+```
+
+COmplextiy does not always result in overfitting but it can 
+
+
+GAMS 

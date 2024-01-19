@@ -1,0 +1,642 @@
+---
+title: "PAC Decision Tree FINAL"
+format: html
+editor: visual
+---
+
+## Quarto
+
+Quarto enables you to weave together content and executable code into a finished document. To learn more about Quarto see <https://quarto.org>.
+
+## Running Code
+
+When you click the **Render** button a document will be generated that includes both content and the output of embedded code. You can embed code like this:
+
+```{r}
+1 + 1
+```
+
+You can add options to executable code like this
+
+```{r}
+#| echo: false
+2 * 2
+```
+
+The `echo: false` option disables the printing of code (only output is displayed).
+
+The process for decision tress
+
+1.  Run data (both dataset and scoringData)
+
+2.  Data wrangling of both dataset and scoring data Train - 1 Train factor - 2 Test - 3 Scoring data(add columns) - 4
+
+3.  Split the data
+
+4.  Do decision tree / run it - choose the best predictors with the lowest rmse score
+
+5.  Do tuning after choosing columns for aalysis
+
+6.  train and test data - check RMSE score. The RMSE scores should be similar and indicative of comparing train model to other datasets
+
+7.  Create csv for submission (the below is an example of decision trees. lm(xxxx) is used for linear models)
+
+pred_ova3 = predict(tree_ova3, newdata = scoringData, type = 'vector') submissionFile = data.frame(id = scoringData\$id, rating = pred_ova3) write.csv(submissionFile, 'submission0424.csv',row.names = F)
+
+Other notes: #Deleting one column - df=subset(mydata, select = -c(x,z)) #x and y is the name of the column
+
+#this is to make t a factor #making the column type as factor train_songs$is_pop = factor(train_songs$is_pop, levels = c(FALSE,TRUE), labels = c("FALSE","TRUE")) train_songs$is_rock = factor(train_songs$is_rock, levels = c(FALSE,TRUE), labels = c("FALSE","TRUE"))
+
+#then do it for test
+
+#then do the same for scoring data
+
+train_songs = train_songs\[!is.na(train_songs\$genre),\] \# removed NA values from 1 column
+
+Read data
+
+```{r}
+setwd('/Users/anshitathakkar/Documents/Predictive Analytics/PAC')
+usedCars_decisiontree = read.csv('/Users/anshitathakkar/Documents/Predictive Analytics/PAC/analysisData.csv')
+scoringData = read.csv('/Users/anshitathakkar/Documents/Predictive Analytics/PAC/scoringData.csv')
+
+```
+
+```{r}
+str(usedCars_decisiontree)
+```
+
+```{r}
+scoringData
+```
+
+```{r}
+summary(usedCars_decisiontree)
+```
+
+```{r}
+head(usedCars_decisiontree)  
+nrow(usedCars_decisiontree) 
+ncol(usedCars_decisiontree)
+nrow(scoringData)
+ncol(scoringData)
+```
+
+Data tidying/wrangling - main data
+
+```{r}
+library(dplyr); library(readr); library(forcats); library(tidyr)
+usedCars_decsiontree2 = 
+  usedCars_decisiontree%>%
+  separate(col = power, into = c('power', 'powerRPM'), sep = '@')%>%
+  mutate(power = parse_number(power))%>%
+  mutate(powerRPM = parse_number(powerRPM))%>%
+  separate(col = torque, into = c('torque', 'torqueRPM'), sep = '@')%>%
+  mutate(torque = parse_number(torque))%>%
+  mutate(torqueRPM = parse_number(torqueRPM))
+
+usedCars_decsiontree2
+
+
+```
+
+```{r}
+major_options = toString(usedCars_decsiontree2$major_options)
+updated = gsub("\\[|\\]", "", major_options)
+updated2 = gsub("\\'|\\'", "", updated)
+major_options = data.frame(strsplit(updated2, split=", "),stringsAsFactors = TRUE)
+major_options
+head(major_options)
+
+#all_genre
+colnames(major_options) = c('feature')
+
+distinct_features = major_options |>
+  group_by(feature) |>
+  summarise(count = n()) |>
+  mutate(Freq = count/sum(count)) |>
+  arrange(desc(count)) |>
+  ungroup()
+
+distinct_features
+```
+
+Data tidying - scoringData
+
+```{r}
+library(dplyr)
+library(forcats); library(stringr); library(tidyr); library(readr)
+
+scoringData = 
+  scoringData%>%
+  separate(col = power, into = c('power','powerRPM'), sep = '@')%>%
+  mutate(power = parse_number(power))%>%
+  mutate(powerRPM = parse_number(powerRPM))%>%
+  separate(col = torque, into = c('torque', 'torqueRPM'), sep = '@')%>%
+  mutate(torque = parse_number(torque))%>%
+  mutate(torqueRPM = parse_number(torqueRPM))
+
+scoringData
+```
+
+```{r}
+
+```
+
+Splitting the data
+
+```{r}
+library(caret)
+set.seed(2792)
+split = createDataPartition(y = usedCars_decsiontree2$price, p = 0.75, list = F,groups = 10)
+train = usedCars_decsiontree2[split,]
+test = usedCars_decsiontree2[-split,]
+```
+
+Means of train and test data
+
+```{r}
+mean(train$price) 
+mean(test$price)
+```
+
+TRAIN DATA
+
+```{r}
+library(stringr)
+
+  train$has_BackupCamera = ifelse(str_detect(string = train$major_options,pattern = 'Backup Camera'),TRUE,FALSE)
+  train$has_Bluetooth = ifelse(str_detect(string = train$major_options,pattern = 'Bluetooth'),TRUE,FALSE)
+  train$has_AlloyWheels = ifelse(str_detect(string = train$major_options,pattern = 'Alloy Wheels'),TRUE,FALSE)
+  train$has_HeatedSeats = ifelse(str_detect(string = train$major_options,pattern = 'Heated Seats'),TRUE,FALSE)
+  train$has_NavigationSystem = ifelse(str_detect(string = train$major_options,pattern = 'Navigation System'),TRUE,FALSE)
+  train$has_Sunroof_Moonroof = ifelse(str_detect(string = train$major_options,pattern = 'Sunroof/Moonroof'),TRUE,FALSE)
+  train$has_RemoteStart = ifelse(str_detect(string = train$major_options,pattern = 'Remote Start'),TRUE,FALSE)
+  train$has_CarPlay = ifelse(str_detect(string = train$major_options,pattern = 'CarPlay'),TRUE,FALSE)
+  train$has_BlindSpotMonitoring = ifelse(str_detect(string = train$major_options,pattern = 'Blind Spot Monitoring'),TRUE,FALSE)
+  train$has_LeatherSeats = ifelse(str_detect(string = train$major_options,pattern = 'Leather Seats'),TRUE,FALSE)
+  train$has_AndroidAuto = ifelse(str_detect(string = train$major_options,pattern = 'Android Auto'),TRUE,FALSE)
+  train$has_ParkingSensors = ifelse(str_detect(string = train$major_options,pattern = 'Parking Sensors'),TRUE,FALSE)
+  train$has_ThirdRowSeating = ifelse(str_detect(string = train$major_options,pattern = 'Third Row Seating'),TRUE,FALSE)
+  train$has_SteelWheels = ifelse(str_detect(string = train$major_options,pattern = 'Steel Wheels'),TRUE,FALSE)
+  train$has_QuickOrderPackage = ifelse(str_detect(string = train$major_options,pattern = 'Quick Order Package'),TRUE,FALSE)
+  train$has_PremiumPackage = ifelse(str_detect(string = train$major_options,pattern = 'Premium Package'),TRUE,FALSE)
+  train$has_ConveniencePackage = ifelse(str_detect(string = train$major_options,pattern = 'Convenience Package'),TRUE,FALSE)
+  train$has_PowerPackage = ifelse(str_detect(string = train$major_options,pattern = 'Power Package'),TRUE,FALSE)
+  train$has_TowPackage = ifelse(str_detect(string = train$major_options,pattern = 'Tow Package'),TRUE,FALSE)
+  train$has_MultiZoneClimateControl = ifelse(str_detect(string = train$major_options,pattern = 'Multi Zone Climate Control'),TRUE,FALSE)
+  train$has_AppearancePackage = ifelse(str_detect(string = train$major_options,pattern = 'Appearance Package'),TRUE,FALSE)
+  train$has_TechnologyPackage = ifelse(str_detect(string = train$major_options,pattern = 'Technology Package'),TRUE,FALSE)
+  train$has_PreferredPackage = ifelse(str_detect(string = train$major_options,pattern = 'Preferred Package'),TRUE,FALSE)
+  train$has_HeatPackage = ifelse(str_detect(string = train$major_options,pattern = 'Heat Package'),TRUE,FALSE)
+  train$has_SEPackage = ifelse(str_detect(string = train$major_options,pattern = 'SE Package'),TRUE,FALSE)
+  train$has_PremiumWheels = ifelse(str_detect(string = train$major_options,pattern = 'Premium Wheels'),TRUE,FALSE)
+  train$has_SportPackage = ifelse(str_detect(string = train$major_options,pattern = 'Sport Package'),TRUE,FALSE)
+  train$has_ColdWeatherPackage = ifelse(str_detect(string = train$major_options,pattern = 'Cold Weather Package'),TRUE,FALSE)
+
+  
+train  
+
+#the only thing that needs to happen with test is check RMSE
+#add mutations to scoring dataset 
+```
+
+Making train data - new columns into factor
+
+```{r}
+train$has_BackupCamera = factor(train$has_BackupCamera, levels = c(FALSE,TRUE), labels = c('FALSE','TRUE')) 
+  train$has_Bluetooth = factor(train$has_Bluetooth, levels = c(FALSE,TRUE), labels = c('FALSE','TRUE'))
+  train$has_AlloyWheels = factor(train$has_AlloyWheels, levels = c(FALSE,TRUE), labels = c('FALSE','TRUE'))
+  train$has_HeatedSeats = factor(train$has_HeatedSeats, levels = c(FALSE,TRUE), labels = c('FALSE','TRUE'))
+  train$has_NavigationSystem = factor(train$has_NavigationSystem, levels = c(FALSE,TRUE), labels = c('FALSE','TRUE'))
+  train$has_Sunroof_Moonroof = factor(train$has_Sunroof_Moonroof, levels = c(FALSE,TRUE), labels = c('FALSE','TRUE'))
+  train$has_RemoteStart = factor(train$has_RemoteStart, levels = c(FALSE,TRUE), labels = c('FALSE','TRUE'))
+  train$has_CarPlay = factor(train$has_CarPlay, levels = c(FALSE,TRUE), labels = c('FALSE','TRUE'))
+  train$has_BlindSpotMonitoring = factor(train$has_BlindSpotMonitoring, levels = c(FALSE,TRUE), labels = c('FALSE','TRUE'))
+  train$has_LeatherSeats = factor(train$has_LeatherSeats, levels = c(FALSE,TRUE), labels = c('FALSE','TRUE'))
+  train$has_AndroidAuto = factor(train$has_AndroidAuto, levels = c(FALSE,TRUE), labels = c('FALSE','TRUE'))
+  train$has_ParkingSensors = factor(train$has_ParkingSensors, levels = c(FALSE,TRUE), labels = c('FALSE','TRUE'))
+  train$has_ThirdRowSeating = factor(train$has_ThirdRowSeating, levels = c(FALSE,TRUE), labels = c('FALSE','TRUE'))
+  train$has_SteelWheels = factor(train$has_SteelWheels, levels = c(FALSE,TRUE), labels = c('FALSE','TRUE'))
+  train$has_QuickOrderPackage = factor(train$has_QuickOrderPackage, levels = c(FALSE,TRUE), labels = c('FALSE','TRUE'))
+  train$has_PremiumPackage = factor(train$has_PremiumPackage, levels = c(FALSE,TRUE), labels = c('FALSE','TRUE'))
+  train$has_ConveniencePackage = factor(train$has_ConveniencePackage, levels = c(FALSE,TRUE), labels = c('FALSE','TRUE'))
+  train$has_PowerPackage = factor(train$has_PowerPackage, levels = c(FALSE,TRUE), labels = c('FALSE','TRUE'))
+  train$has_TowPackage = factor(train$has_TowPackage, levels = c(FALSE,TRUE), labels = c('FALSE','TRUE'))
+  train$has_MultiZoneClimateControl = factor(train$has_MultiZoneClimateControl, levels = c(FALSE,TRUE), labels = c('FALSE','TRUE'))
+  train$has_AppearancePackage = factor(train$has_AppearancePackage, levels = c(FALSE,TRUE), labels = c('FALSE','TRUE'))
+  train$has_TechnologyPackage = factor(train$has_TechnologyPackage, levels = c(FALSE,TRUE), labels = c('FALSE','TRUE'))
+  train$has_PreferredPackage = factor(train$has_PreferredPackage, levels = c(FALSE,TRUE), labels = c('FALSE','TRUE'))
+  train$has_HeatPackage = factor(train$has_HeatPackage, levels = c(FALSE,TRUE), labels = c('FALSE','TRUE'))
+  train$has_SEPackage = factor(train$has_SEPackage, levels = c(FALSE,TRUE), labels = c('FALSE','TRUE'))
+  train$has_PremiumWheels = factor(train$has_PremiumWheels, levels = c(FALSE,TRUE), labels = c('FALSE','TRUE'))
+  train$has_SportPackage = factor(train$has_SportPackage, levels = c(FALSE,TRUE), labels = c('FALSE','TRUE'))
+  train$has_ColdWeatherPackage = factor(train$has_ColdWeatherPackage, levels = c(FALSE,TRUE), labels = c('FALSE','TRUE'))
+```
+
+Test data
+
+```{r}
+test$has_BackupCamera = ifelse(str_detect(string = test$major_options,pattern = 'Backup Camera'),TRUE,FALSE)
+test$has_Bluetooth = ifelse(str_detect(string = test$major_options,pattern = 'Bluetooth'),TRUE,FALSE)
+test$has_AlloyWheels = ifelse(str_detect(string = test$major_options,pattern = 'Alloy Wheels'),TRUE,FALSE)
+test$has_HeatedSeats = ifelse(str_detect(string = test$major_options,pattern = 'Heated Seats'),TRUE,FALSE)
+  test$has_NavigationSystem = ifelse(str_detect(string = test$major_options,pattern = 'Navigation System'),TRUE,FALSE)
+  test$has_Sunroof_Moonroof = ifelse(str_detect(string = test$major_options,pattern = 'Sunroof/Moonroof'),TRUE,FALSE)
+  test$has_RemoteStart = ifelse(str_detect(string = test$major_options,pattern = 'Remote Start'),TRUE,FALSE)
+  test$has_CarPlay = ifelse(str_detect(string = test$major_options,pattern = 'CarPlay'),TRUE,FALSE)
+  test$has_BlindSpotMonitoring = ifelse(str_detect(string = test$major_options,pattern = 'Blind Spot Monitoring'),TRUE,FALSE)
+  test$has_LeatherSeats = ifelse(str_detect(string = test$major_options,pattern = 'Leather Seats'),TRUE,FALSE)
+  test$has_AndroidAuto = ifelse(str_detect(string = test$major_options,pattern = 'Android Auto'),TRUE,FALSE)
+  test$has_ParkingSensors = ifelse(str_detect(string = test$major_options,pattern = 'Parking Sensors'),TRUE,FALSE)
+  test$has_ThirdRowSeating = ifelse(str_detect(string = test$major_options,pattern = 'Third Row Seating'),TRUE,FALSE)
+  test$has_SteelWheels = ifelse(str_detect(string = test$major_options,pattern = 'Steel Wheels'),TRUE,FALSE)
+  test$has_QuickOrderPackage = ifelse(str_detect(string = test$major_options,pattern = 'Quick Order Package'),TRUE,FALSE)
+  test$has_PremiumPackage = ifelse(str_detect(string = test$major_options,pattern = 'Premium Package'),TRUE,FALSE)
+  test$has_ConveniencePackage = ifelse(str_detect(string = test$major_options,pattern = 'Convenience Package'),TRUE,FALSE)
+  test$has_PowerPackage = ifelse(str_detect(string = test$major_options,pattern = 'Power Package'),TRUE,FALSE)
+  test$has_TowPackage = ifelse(str_detect(string = test$major_options,pattern = 'Tow Package'),TRUE,FALSE)
+  test$has_MultiZoneClimateControl = ifelse(str_detect(string = test$major_options,pattern = 'Multi Zone Climate Control'),TRUE,FALSE)
+  test$has_AppearancePackage = ifelse(str_detect(string = test$major_options,pattern = 'Appearance Package'),TRUE,FALSE)
+  test$has_TechnologyPackage = ifelse(str_detect(string = test$major_options,pattern = 'Technology Package'),TRUE,FALSE)
+  test$has_PreferredPackage = ifelse(str_detect(string = test$major_options,pattern = 'Preferred Package'),TRUE,FALSE)
+  test$has_HeatPackage = ifelse(str_detect(string = test$major_options,pattern = 'Heat Package'),TRUE,FALSE)
+  test$has_SEPackage = ifelse(str_detect(string = test$major_options,pattern = 'SE Package'),TRUE,FALSE)
+  test$has_PremiumWheels = ifelse(str_detect(string = test$major_options,pattern = 'Premium Wheels'),TRUE,FALSE)
+  test$has_SportPackage = ifelse(str_detect(string = test$major_options,pattern = 'Sport Package'),TRUE,FALSE)
+  test$has_ColdWeatherPackage = ifelse(str_detect(string = test$major_options,pattern = 'Cold Weather Package'),TRUE,FALSE)
+
+test
+```
+
+Test data factors
+
+```{r}
+test$has_BackupCamera = factor(test$has_BackupCamera, levels = c(FALSE,TRUE), labels = c('FALSE','TRUE')) 
+test$has_Bluetooth = factor(test$has_Bluetooth, levels = c(FALSE,TRUE), labels = c('FALSE','TRUE'))
+test$has_AlloyWheels = factor(test$has_AlloyWheels, levels = c(FALSE,TRUE), labels = c('FALSE','TRUE'))
+test$has_HeatedSeats = factor(test$has_HeatedSeats, levels = c(FALSE,TRUE), labels = c('FALSE','TRUE'))
+test$has_NavigationSystem = factor(test$has_NavigationSystem, levels = c(FALSE,TRUE), labels = c('FALSE','TRUE'))
+test$has_Sunroof_Moonroof = factor(test$has_Sunroof_Moonroof, levels = c(FALSE,TRUE), labels = c('FALSE','TRUE'))
+test$has_RemoteStart = factor(test$has_RemoteStart, levels = c(FALSE,TRUE), labels = c('FALSE','TRUE'))
+test$has_CarPlay = factor(test$has_CarPlay, levels = c(FALSE,TRUE), labels = c('FALSE','TRUE'))
+test$has_BlindSpotMonitoring = factor(test$has_BlindSpotMonitoring, levels = c(FALSE,TRUE), labels = c('FALSE','TRUE'))
+test$has_LeatherSeats = factor(test$has_LeatherSeats, levels = c(FALSE,TRUE), labels = c('FALSE','TRUE'))
+test$has_AndroidAuto = factor(test$has_AndroidAuto, levels = c(FALSE,TRUE), labels = c('FALSE','TRUE'))
+test$has_ParkingSensors = factor(test$has_ParkingSensors, levels = c(FALSE,TRUE), labels = c('FALSE','TRUE'))
+test$has_ThirdRowSeating = factor(test$has_ThirdRowSeating, levels = c(FALSE,TRUE), labels = c('FALSE','TRUE'))
+test$has_SteelWheels = factor(test$has_SteelWheels, levels = c(FALSE,TRUE), labels = c('FALSE','TRUE'))
+test$has_QuickOrderPackage = factor(test$has_QuickOrderPackage, levels = c(FALSE,TRUE), labels = c('FALSE','TRUE'))
+test$has_PremiumPackage = factor(test$has_PremiumPackage, levels = c(FALSE,TRUE), labels = c('FALSE','TRUE'))
+test$has_ConveniencePackage = factor(test$has_ConveniencePackage, levels = c(FALSE,TRUE), labels = c('FALSE','TRUE'))
+test$has_PowerPackage = factor(test$has_PowerPackage, levels = c(FALSE,TRUE), labels = c('FALSE','TRUE'))
+test$has_TowPackage = factor(test$has_TowPackage, levels = c(FALSE,TRUE), labels = c('FALSE','TRUE'))
+test$has_MultiZoneClimateControl = factor(test$has_MultiZoneClimateControl, levels = c(FALSE,TRUE), labels = c('FALSE','TRUE'))
+test$has_AppearancePackage = factor(test$has_AppearancePackage, levels = c(FALSE,TRUE), labels = c('FALSE','TRUE'))
+test$has_TechnologyPackage = factor(test$has_TechnologyPackage, levels = c(FALSE,TRUE), labels = c('FALSE','TRUE'))
+test$has_PreferredPackage = factor(test$has_PreferredPackage, levels = c(FALSE,TRUE), labels = c('FALSE','TRUE'))
+test$has_HeatPackage = factor(test$has_HeatPackage, levels = c(FALSE,TRUE), labels = c('FALSE','TRUE'))
+test$has_SEPackage = factor(test$has_SEPackage, levels = c(FALSE,TRUE), labels = c('FALSE','TRUE'))
+test$has_PremiumWheels = factor(test$has_PremiumWheels, levels = c(FALSE,TRUE), labels = c('FALSE','TRUE'))
+test$has_SportPackage = factor(test$has_SportPackage, levels = c(FALSE,TRUE), labels = c('FALSE','TRUE'))
+test$has_ColdWeatherPackage = factor(test$has_ColdWeatherPackage, levels = c(FALSE,TRUE), labels = c('FALSE','TRUE'))
+```
+
+Creating columns in scoring data
+
+```{r}
+scoringData$has_BackupCamera = ifelse(str_detect(string = scoringData$major_options,pattern = 'Backup Camera'),TRUE,FALSE)
+scoringData$has_Bluetooth = ifelse(str_detect(string = scoringData$major_options,pattern = 'Bluetooth'),TRUE,FALSE)
+scoringData$has_AlloyWheels = ifelse(str_detect(string = scoringData$major_options,pattern = 'Alloy Wheels'),TRUE,FALSE)
+scoringData$has_HeatedSeats = ifelse(str_detect(string = scoringData$major_options,pattern = 'Heated Seats'),TRUE,FALSE)
+scoringData$has_NavigationSystem = ifelse(str_detect(string = scoringData$major_options,pattern = 'Navigation System'),TRUE,FALSE)
+scoringData$has_Sunroof_Moonroof = ifelse(str_detect(string = scoringData$major_options,pattern = 'Sunroof/Moonroof'),TRUE,FALSE)
+scoringData$has_RemoteStart = ifelse(str_detect(string = scoringData$major_options,pattern = 'Remote Start'),TRUE,FALSE)
+scoringData$has_CarPlay = ifelse(str_detect(string = scoringData$major_options,pattern = 'CarPlay'),TRUE,FALSE)
+scoringData$has_BlindSpotMonitoring = ifelse(str_detect(string = scoringData$major_options,pattern = 'Blind Spot Monitoring'),TRUE,FALSE)
+scoringData$has_LeatherSeats = ifelse(str_detect(string = scoringData$major_options,pattern = 'Leather Seats'),TRUE,FALSE)
+scoringData$has_AndroidAuto = ifelse(str_detect(string = scoringData$major_options,pattern = 'Android Auto'),TRUE,FALSE)
+scoringData$has_ParkingSensors = ifelse(str_detect(string = scoringData$major_options,pattern = 'Parking Sensors'),TRUE,FALSE)
+scoringData$has_ThirdRowSeating = ifelse(str_detect(string = scoringData$major_options,pattern = 'Third Row Seating'),TRUE,FALSE)
+scoringData$has_SteelWheels = ifelse(str_detect(string = scoringData$major_options,pattern = 'Steel Wheels'),TRUE,FALSE)
+scoringData$has_QuickOrderPackage = ifelse(str_detect(string = scoringData$major_options,pattern = 'Quick Order Package'),TRUE,FALSE)
+scoringData$has_PremiumPackage = ifelse(str_detect(string = scoringData$major_options,pattern = 'Premium Package'),TRUE,FALSE)
+scoringData$has_ConveniencePackage = ifelse(str_detect(string = scoringData$major_options,pattern = 'Convenience Package'),TRUE,FALSE)
+scoringData$has_PowerPackage = ifelse(str_detect(string = scoringData$major_options,pattern = 'Power Package'),TRUE,FALSE)
+scoringData$has_TowPackage = ifelse(str_detect(string = scoringData$major_options,pattern = 'Tow Package'),TRUE,FALSE)
+scoringData$has_MultiZoneClimateControl = ifelse(str_detect(string = scoringData$major_options,pattern = 'Multi Zone Climate Control'),TRUE,FALSE)
+scoringData$has_AppearancePackage = ifelse(str_detect(string = scoringData$major_options,pattern = 'Appearance Package'),TRUE,FALSE)
+scoringData$has_TechnologyPackage = ifelse(str_detect(string = scoringData$major_options,pattern = 'Technology Package'),TRUE,FALSE)
+scoringData$has_PreferredPackage = ifelse(str_detect(string = scoringData$major_options,pattern = 'Preferred Package'),TRUE,FALSE)
+scoringData$has_HeatPackage = ifelse(str_detect(string = scoringData$major_options,pattern = 'Heat Package'),TRUE,FALSE)
+scoringData$has_SEPackage = ifelse(str_detect(string = scoringData$major_options,pattern = 'SE Package'),TRUE,FALSE)
+scoringData$has_PremiumWheels = ifelse(str_detect(string = scoringData$major_options,pattern = 'Premium Wheels'),TRUE,FALSE)
+scoringData$has_SportPackage = ifelse(str_detect(string = scoringData$major_options,pattern = 'Sport Package'),TRUE,FALSE)
+scoringData$has_ColdWeatherPackage = ifelse(str_detect(string = scoringData$major_options,pattern = 'Cold Weather Package'),TRUE,FALSE)
+
+scoringData
+```
+
+ScoringData --- create factors
+
+```{r}
+scoringData$has_BackupCamera = factor(scoringData$has_BackupCamera, levels = c(FALSE,TRUE), labels = c('FALSE','TRUE')) 
+scoringData$has_Bluetooth = factor(scoringData$has_Bluetooth, levels = c(FALSE,TRUE), labels = c('FALSE','TRUE'))
+scoringData$has_AlloyWheels = factor(scoringData$has_AlloyWheels, levels = c(FALSE,TRUE), labels = c('FALSE','TRUE'))
+scoringData$has_HeatedSeats = factor(scoringData$has_HeatedSeats, levels = c(FALSE,TRUE), labels = c('FALSE','TRUE'))
+scoringData$has_NavigationSystem = factor(scoringData$has_NavigationSystem, levels = c(FALSE,TRUE), labels = c('FALSE','TRUE'))
+scoringData$has_Sunroof_Moonroof = factor(scoringData$has_Sunroof_Moonroof, levels = c(FALSE,TRUE), labels = c('FALSE','TRUE'))
+scoringData$has_RemoteStart = factor(scoringData$has_RemoteStart, levels = c(FALSE,TRUE), labels = c('FALSE','TRUE'))
+scoringData$has_CarPlay = factor(scoringData$has_CarPlay, levels = c(FALSE,TRUE), labels = c('FALSE','TRUE'))
+scoringData$has_BlindSpotMonitoring = factor(scoringData$has_BlindSpotMonitoring, levels = c(FALSE,TRUE), labels = c('FALSE','TRUE'))
+scoringData$has_LeatherSeats = factor(scoringData$has_LeatherSeats, levels = c(FALSE,TRUE), labels = c('FALSE','TRUE'))
+scoringData$has_AndroidAuto = factor(scoringData$has_AndroidAuto, levels = c(FALSE,TRUE), labels = c('FALSE','TRUE'))
+scoringData$has_ParkingSensors = factor(scoringData$has_ParkingSensors, levels = c(FALSE,TRUE), labels = c('FALSE','TRUE'))
+scoringData$has_ThirdRowSeating = factor(scoringData$has_ThirdRowSeating, levels = c(FALSE,TRUE), labels = c('FALSE','TRUE'))
+scoringData$has_SteelWheels = factor(scoringData$has_SteelWheels, levels = c(FALSE,TRUE), labels = c('FALSE','TRUE'))
+scoringData$has_QuickOrderPackage = factor(scoringData$has_QuickOrderPackage, levels = c(FALSE,TRUE), labels = c('FALSE','TRUE'))
+scoringData$has_PremiumPackage = factor(scoringData$has_PremiumPackage, levels = c(FALSE,TRUE), labels = c('FALSE','TRUE'))
+scoringData$has_ConveniencePackage = factor(scoringData$has_ConveniencePackage, levels = c(FALSE,TRUE), labels = c('FALSE','TRUE'))
+scoringData$has_PowerPackage = factor(scoringData$has_PowerPackage, levels = c(FALSE,TRUE), labels = c('FALSE','TRUE'))
+scoringData$has_TowPackage = factor(scoringData$has_TowPackage, levels = c(FALSE,TRUE), labels = c('FALSE','TRUE'))
+scoringData$has_MultiZoneClimateControl = factor(scoringData$has_MultiZoneClimateControl, levels = c(FALSE,TRUE), labels = c('FALSE','TRUE'))
+scoringData$has_AppearancePackage = factor(scoringData$has_AppearancePackage, levels = c(FALSE,TRUE), labels = c('FALSE','TRUE'))
+scoringData$has_TechnologyPackage = factor(scoringData$has_TechnologyPackage, levels = c(FALSE,TRUE), labels = c('FALSE','TRUE'))
+scoringData$has_PreferredPackage = factor(scoringData$has_PreferredPackage, levels = c(FALSE,TRUE), labels = c('FALSE','TRUE'))
+scoringData$has_HeatPackage = factor(scoringData$has_HeatPackage, levels = c(FALSE,TRUE), labels = c('FALSE','TRUE'))
+scoringData$has_SEPackage = factor(scoringData$has_SEPackage, levels = c(FALSE,TRUE), labels = c('FALSE','TRUE'))
+scoringData$has_PremiumWheels = factor(scoringData$has_PremiumWheels, levels = c(FALSE,TRUE), labels = c('FALSE','TRUE'))
+scoringData$has_SportPackage = factor(scoringData$has_SportPackage, levels = c(FALSE,TRUE), labels = c('FALSE','TRUE'))
+scoringData$has_ColdWeatherPackage = factor(scoringData$has_ColdWeatherPackage, levels = c(FALSE,TRUE), labels = c('FALSE','TRUE'))
+```
+
+```{r}
+train$isCoupe = ifelse(str_detect(string = train$body_type,pattern = 'Coupe'),TRUE,FALSE)
+train$isHatchback = ifelse(str_detect(string = train$body_type,pattern = 'Hatchback'),TRUE,FALSE)
+train$isMinivan = ifelse(str_detect(string = train$body_type,pattern = 'Minivan'),TRUE,FALSE)
+train$isPickupTruck = ifelse(str_detect(string = train$body_type,pattern = 'Pickup Truck'),TRUE,FALSE)
+train$isSedan = ifelse(str_detect(string = train$body_type,pattern = 'Sedan'),TRUE,FALSE)
+train$isSUV = ifelse(str_detect(string = train$body_type,pattern = 'SUV / Crossover'),TRUE,FALSE)
+train$isVan = ifelse(str_detect(string = train$body_type,pattern = 'Van'),TRUE,FALSE)
+train$isWagon = ifelse(str_detect(string = train$body_type,pattern = 'Wagon'),TRUE,FALSE)
+
+train$isCoupe = factor(train$isCoupe, levels = c(FALSE,TRUE), labels = c('FALSE','TRUE')) 
+train$isHatchback = factor(train$isHatchback, levels = c(FALSE,TRUE), labels = c('FALSE','TRUE'))
+train$isMinivan = factor(train$isMinivan, levels = c(FALSE,TRUE), labels = c('FALSE','TRUE'))
+train$isPickupTruck = factor(train$isPickupTruck, levels = c(FALSE,TRUE), labels = c('FALSE','TRUE'))
+train$isSedan = factor(train$isSedan, levels = c(FALSE,TRUE), labels = c('FALSE','TRUE'))
+train$isSUV = factor(train$isSUV, levels = c(FALSE,TRUE), labels = c('FALSE','TRUE'))
+train$isVan = factor(train$isVan, levels = c(FALSE,TRUE), labels = c('FALSE','TRUE'))
+train$isWagon = factor(train$isWagon, levels = c(FALSE,TRUE), labels = c('FALSE','TRUE'))
+
+
+train
+
+test$isCoupe = ifelse(str_detect(string = test$body_type,pattern = 'Coupe'),TRUE,FALSE)
+test$isHatchback = ifelse(str_detect(string = test$body_type,pattern = 'Hatchback'),TRUE,FALSE)
+test$isMinivan = ifelse(str_detect(string = test$body_type,pattern = 'Minivan'),TRUE,FALSE)
+test$isPickupTruck = ifelse(str_detect(string = test$body_type,pattern = 'Pickup Truck'),TRUE,FALSE)
+test$isSedan = ifelse(str_detect(string = test$body_type,pattern = 'Sedan'),TRUE,FALSE)
+test$isSUV = ifelse(str_detect(string = test$body_type,pattern = 'SUV / Crossover'),TRUE,FALSE)
+test$isVan = ifelse(str_detect(string = test$body_type,pattern = 'Van'),TRUE,FALSE)
+test$isWagon = ifelse(str_detect(string = test$body_type,pattern = 'Wagon'),TRUE,FALSE)
+
+test$isCoupe = factor(test$isCoupe, levels = c(FALSE,TRUE), labels = c('FALSE','TRUE')) 
+test$isHatchback = factor(test$isHatchback, levels = c(FALSE,TRUE), labels = c('FALSE','TRUE'))
+test$isMinivan = factor(test$isMinivan, levels = c(FALSE,TRUE), labels = c('FALSE','TRUE'))
+test$isPickupTruck = factor(test$isPickupTruck, levels = c(FALSE,TRUE), labels = c('FALSE','TRUE'))
+test$isSedan = factor(test$isSedan, levels = c(FALSE,TRUE), labels = c('FALSE','TRUE'))
+test$isSUV = factor(test$isSUV, levels = c(FALSE,TRUE), labels = c('FALSE','TRUE'))
+test$isVan = factor(test$isVan, levels = c(FALSE,TRUE), labels = c('FALSE','TRUE'))
+test$isWagon = factor(test$isWagon, levels = c(FALSE,TRUE), labels = c('FALSE','TRUE'))
+
+test
+
+scoringData$isCoupe = ifelse(str_detect(string = scoringData$body_type,pattern = 'Coupe'),TRUE,FALSE)
+scoringData$isHatchback = ifelse(str_detect(string = scoringData$body_type,pattern = 'Hatchback'),TRUE,FALSE)
+scoringData$isMinivan = ifelse(str_detect(string = scoringData$body_type,pattern = 'Minivan'),TRUE,FALSE)
+scoringData$isPickupTruck = ifelse(str_detect(string = scoringData$body_type,pattern = 'Pickup Truck'),TRUE,FALSE)
+scoringData$isSedan = ifelse(str_detect(string = scoringData$body_type,pattern = 'Sedan'),TRUE,FALSE)
+scoringData$isSUV = ifelse(str_detect(string = scoringData$body_type,pattern = 'SUV / Crossover'),TRUE,FALSE)
+scoringData$isVan = ifelse(str_detect(string = scoringData$body_type,pattern = 'Van'),TRUE,FALSE)
+scoringData$isWagon = ifelse(str_detect(string = scoringData$body_type,pattern = 'Wagon'),TRUE,FALSE)
+
+scoringData$isCoupe = factor(scoringData$isCoupe, levels = c(FALSE,TRUE), labels = c('FALSE','TRUE')) 
+scoringData$isHatchback = factor(scoringData$isHatchback, levels = c(FALSE,TRUE), labels = c('FALSE','TRUE'))
+scoringData$isMinivan = factor(scoringData$isMinivan, levels = c(FALSE,TRUE), labels = c('FALSE','TRUE'))
+scoringData$isPickupTruck = factor(scoringData$isPickupTruck, levels = c(FALSE,TRUE), labels = c('FALSE','TRUE'))
+scoringData$isSedan = factor(scoringData$isSedan, levels = c(FALSE,TRUE), labels = c('FALSE','TRUE'))
+scoringData$isSUV = factor(scoringData$isSUV, levels = c(FALSE,TRUE), labels = c('FALSE','TRUE'))
+scoringDataisVan = factor(scoringData$isVan, levels = c(FALSE,TRUE), labels = c('FALSE','TRUE'))
+scoringData$isWagon = factor(scoringData$isWagon, levels = c(FALSE,TRUE), labels = c('FALSE','TRUE'))
+
+
+scoringData
+```
+
+Skimming data
+
+```{r}
+library(skimr)
+skim(train)
+summary(train)
+```
+
+Decision tree
+
+```{r}
+library(rpart); library(rpart.plot)
+tree10 = rpart(price~is_new+wheelbase_inches+horsepower+daysonmarket+highway_fuel_economy+engine_displacement+mileage+seller_rating+owner_count+year+maximum_seating+fuel_tank_volume_gallons+highway_fuel_economy+city_fuel_economy+back_legroom_inches+front_legroom_inches+length_inches+width_inches+height_inches+has_BackupCamera+has_NavigationSystem+power+powerRPM+torque+torqueRPM+has_BlindSpotMonitoring+has_ConveniencePackage+has_AndroidAuto+has_ParkingSensors+has_TechnologyPackage+has_PreferredPackage+has_HeatPackage+has_SEPackage+has_PremiumWheels+has_SportPackage+has_ColdWeatherPackage+isCoupe+isHatchback+isMinivan+isPickupTruck+isSedan+isSUV+isWagon,data = train, method = 'anova', cp = 0.000000001)
+  
+tree9 <- rpart(price ~ is_new + mileage + highway_fuel_economy + seller_rating + 
+                 engine_displacement + year + horsepower + maximum_seating, 
+               data = train, method = 'anova', control = rpart.control (cp = 0.000001))
+
+
+predictions10 <- predict(tree10, newdata = scoringData)
+
+#library(rpart); library(rpart.plot)
+#submitted ----> tree9 = rpart(price~is_new+wheelbase_inches+highway_fuel_economy+engine_displacement+mileage+seller_rating+owner_count+year+maximum_seating+fuel_tank_volume_gallons+highway_fuel_economy+city_fuel_economy+back_legroom_inches+front_legroom_inches+length_inches+width_inches+height_inches+has_BackupCamera+has_NavigationSystem+power+powerRPM+torque+torqueRPM+has_BlindSpotMonitoring, data = train, method = 'anova', cp = 0.000001)
+
+##modeltree18 = rpart(price~is_new+mileage+fuel_tank_volume_gallons+highway_fuel_economy+city_fuel_economy+city_fuel_economy+seller_rating+back_legroom_inches+front_legroom_inches+length_inches+width_inches+height_inches+engine_displacement+horsepower+daysonmarket+maximum_seating+year+mileage+owner_count+seller_rating+body_type+fuel_type+power+	powerRPM+torque+torqueRPM+transmission+model_name+make_name+trim_name,data=train)
+#price~power+powerRPM+ fuel_tank_volume_gallons+engine_displacement+mileage+seller_rating+is_new+owner_count+maximum_seating+highway_fuel_economy+city_fuel_economy+torque+torqueRPM+has_BackupCamera+has_AlloyWheels+has_NavigationSystem+fuel_type,data = train, method = 'anova')
+
+
+#price~engine_displacement+mileage+seller_rating+owner_count+year+maximum_seating+fuel_tank_volume_gallons+highway_fuel_economy+city_fuel_economy,data = train, method = 'anova'
+
+#Removed: has_AlloyWheels+has_HeatedSeats+has_HeatedSeats+has_NavigationSystem+has_Sunroof_Moonroof+has_RemoteStart+has_CarPlay+has_BlindSpotMonitoring+has_LeatherSeats+has_AndroidAuto
+
+#price~power+fuel_tank_volume_gallons+engine_displacement+mileage+seller_rating+is_new+owner_count+maximum_seating+highway_fuel_economy+city_fuel_economy+torque+torqueRPM
+
+#Low score hence removed leather seat, car play, remote start, android auto, heated seats, bluetooth, sunroof, moonroof, heated seats, blindspot monitoring
+
+as.numeric(train$power)
+as.numeric(train$powerRPM)
+as.numeric(train$torque)
+as.numeric(train$torqueRPM)
+is.numeric(train$engine_displacement)
+
+
+as.numeric(test$power)
+as.numeric(test$powerRPM)
+as.numeric(test$torque)
+as.numeric(test$torqueRPM)
+is.numeric(test$engine_displacement)
+
+as.numeric(scoringData$power)
+as.numeric(scoringData$powerRPM)
+as.numeric(scoringData$torque)
+as.numeric(scoringData$torqueRPM)
+is.numeric(scoringData$engine_displacement)
+
+class(train$has_Bluetooth)
+
+cor.test(train$price, train$engine_displacement)
+
+install.packages('polycor')
+library('polycor')
+
+hetcor(train$price, train$is_new)
+
+install.packages('ltm')
+library(ltm)
+
+summary(tree9)
+rpart.plot(tree10)
+```
+
+Correlation matrix
+
+```{r}
+cor(train[,])
+
+has_BackupCamera+has_Bluetooth+has_BlindSpotMonitoring+has_LeatherSeats
+power+fuel_tank_volume_gallons+engine_displacement+is_new
+```
+
+has_AlloyWheels+has_RemoteStart+has_CarPlay+has_BlindSpotMonitoring+has_LeatherSeats+has_AndroidAuto
+
+```{r}
+rpart.plot(tree9)
+```
+
+Predicting
+
+```{r}
+predictions10 = predict(tree10)[1:10]; predictions10
+```
+
+```{r}
+unique(predict(tree9))
+```
+
+```{r}
+tree10$variable.importance
+```
+
+Tuning the decision tree
+
+cp
+
+```{r}
+tree9 = rpart(price~.,data = train, method = 'anova', control = rpart.control(cp = 0.000001))
+rpart.plot(tree9)
+```
+
+Min split
+
+```{r}
+tree3 = rpart(Balance~.,data = train, method = 'anova', control = rpart.control(minsplit = 100))
+rpart.plot(tree3)
+```
+
+RMSE score (train and test data)
+
+```{r}
+rmse_train9 = sqrt(mean((pred9 - train$price)^2))
+
+pred9_test = predict(tree9, newdata=test)
+rmse_test9 = sqrt(mean((pred9_test - test$price)^2))
+
+rmse_train9
+rmse_test9
+
+
+
+```
+
+```{r}
+#oldHighest score
+rmse_train10 = sqrt(mean((predictions10 - train$price)^2))
+
+pred10_test = predict(tree10, newdata=test)
+rmse_test10 = sqrt(mean((pred10_test - test$price)^2))
+
+rmse_train10
+rmse_test10
+```
+
+```{r}
+rmse_train10 = sqrt(mean((predictions10 - train$price)^2))
+
+pred10_test = predict(tree10, newdata=test)
+rmse_test10 = sqrt(mean((pred10_test - test$price)^2))
+
+rmse_train10
+rmse_test10
+```
+
+```{r}
+library(Metrics)
+rmse(actual = train$price, predicted = pred9)
+
+
+```
+
+SUBMISSION
+
+```{r}
+# ensure analysisData.csv and scoringData.csv are in your working directory
+
+# following code will read data and construct a simple model
+data = read.csv('/Users/anshitathakkar/Documents/Predictive Analytics/PAC/analysisData.csv')
+model = predict(tree9, newdata = scoringData, type = 'vector')
+
+# read in scoring data and apply model to generate predictions
+predictions <- predict(tree9, newdata = scoringData)
+
+# construct submission from predictions
+submissionFile = data.frame(id = scoringData$id, price = predictions)
+write.csv(submissionFile, 'decisiontree_multiple2.csv',row.names = F)
+
+getwd()
+```
+
+```{r}
+# ensure analysisData.csv and scoringData.csv are in your working directory
+
+# following code will read data and construct a simple model
+data = read.csv('/Users/anshitathakkar/Documents/Predictive Analytics/PAC/analysisData.csv')
+model = predict(tree10, newdata = scoringData, type = 'vector')
+
+# read in scoring data and apply model to generate predictions
+predictions10 <- predict(tree10, newdata = scoringData)
+
+# construct submission from predictions
+submissionFile = data.frame(id = scoringData$id, price = predictions10)
+write.csv(submissionFile, 'decisiontree_multiple5.csv',row.names = F)
+
+getwd()
+```
+
+```{r}
+library(ipred)
+set.seed(2267) 
+bag = bagging(price~is_new+wheelbase_inches+horsepower+daysonmarket+highway_fuel_economy+engine_displacement+mileage+seller_rating+owner_count+year+maximum_seating+fuel_tank_volume_gallons+highway_fuel_economy+city_fuel_economy+back_legroom_inches+front_legroom_inches+length_inches+width_inches+height_inches+has_BackupCamera+has_NavigationSystem+power+powerRPM+torque+torqueRPM+has_BlindSpotMonitoring+has_ConveniencePackage+has_AndroidAuto+has_ParkingSensors+has_TechnologyPackage+has_PreferredPackage+has_HeatPackage+has_SEPackage+has_PremiumWheels+has_SportPackage+has_ColdWeatherPackage+isCoupe+isHatchback+isMinivan+isPickupTruck+isSedan+isSUV+isWagon, data = train, nbagg = 1000)
+
+pred_train = predict(bag)
+rmse_train_bag_ipred = sqrt(mean((pred_train - train$price)^2)); rmse_train_bag_ipred
+
+pred = predict(bag, newdata = test)
+rmse_bag_ipred = sqrt(mean((pred - test$price)^2)); rmse_bag_ipred
+```

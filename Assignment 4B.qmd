@@ -1,0 +1,120 @@
+---
+title: "Assignment 4B"
+format: html
+editor: visual
+---
+
+## Quarto
+
+Quarto enables you to weave together content and executable code into a finished document. To learn more about Quarto see <https://quarto.org>.
+
+## Running Code
+
+When you click the **Render** button a document will be generated that includes both content and the output of embedded code. You can embed code like this:
+
+```{r}
+1 + 1
+```
+
+You can add options to executable code like this
+
+```{r}
+#| echo: false
+2 * 2
+```
+
+The `echo: false` option disables the printing of code (only output is displayed).
+
+
+Q1 One would expect those who ride a taxi for a long distance will tip more generously. To examine this hypothesis, construct a simple regression to predict tip_amount with trip_distance. Call this model1. What is the p-value for the F-statistic?
+
+Q 2 What is the R-squared (R2) for model1? (Think about what this says about model performance).
+Q5.  
+Since model1 is built on sample data, it is important to see if the coefficient estimates will be non-zero in the population. Indicate whether the following statement is True or False.
+
+```{r}
+model1 = lm(tip_amount~trip_distance,data=train)
+summary(model1)
+```
+
+
+Q3 
+The first trip (i.e., first row) in the train data covered a distance of 1.26 miles. Based on model1, what is the predicted tip_amount for this trip?
+
+```{r}
+predict(model1, newdata = data.frame(trip_distance = 1.26))
+```
+
+
+Q 4: What is the RMSE (root mean squared error) for model1?
+
+
+```{r}
+
+pred = predict(model1)
+rmse1 = sqrt(mean((pred - train$tip_amount)^2)); rmse1
+```
+
+Q 6
+
+Imagine a person takes a taxi to go to work, 10 miles away. Based on model1, how much do you think they will tip?
+
+```{r}
+predict(model1, newdata = data.frame(trip_distance = 10))
+```
+
+Q 7) For every additional mile driven for a trip, how much more can a taxi driver expect to get in tips?
+
+```{r}
+predict(model1, newdata = data.frame(trip_distance = 6)) - predict(model1, newdata = data.frame(trip_distance = 5))
+
+ggplot(data=train,aes(x=period_of_day,y=tip_amount,fill=period_of_day))+
+  geom_bar(stat='summary',fun='mean',position='dodge')+
+  guides(fill=F)+
+  scale_y_continuous(labels = scales::label_dollar())+
+  theme_bw()
+
+```
+
+
+
+
+q8 Let us see if passengers tip more generously at certain times of the day. Construct a model to predict tip_amount based on period_of_day. Call this model2. Based on model2, which of the following are true. Select one or more correct answers.
+
+```{r}
+
+model2 = lm(tip_amount~period_of_day,data=train)
+summary(model2)
+```
+Q9 It is conceivable that the trips vary by day of the week. To investigate this, construct a model to predict tip_amount based on pickup_day. Call this model3. Based on model3, which of the following are true. Select one or more correct answers.
+
+
+```{r}
+model3 = lm(tip_amount~pickup_day,data=train)
+summary(model3)
+```
+Q10. Let us see if tipping varies by number of passengers. To investigate this, construct a model to predict tip_amount based on passenger_count. Call this model4. Based on model4, on average how much more can a taxi driver expect to get in tips for every additional passenger?
+
+```{r}
+model4 = lm(tip_amount~passenger_count,data=train)
+summary(model4)
+```
+Q11
+
+Which of the following models has the lowest RMSE? A lower RMSE reflects better predictions. #model 4, model 3 or model 2
+
+```{r}
+pred = predict(model4)
+rmse4 = sqrt(mean((pred - train$tip_amount)^2)); rmse4
+```
+
+```{r}
+pred = predict(model3)
+rmse3 = sqrt(mean((pred - train$tip_amount)^2)); rmse3
+```
+
+```{r}
+pred = predict(model2)
+rmse2 = sqrt(mean((pred - train$tip_amount)^2)); rmse2
+```
+

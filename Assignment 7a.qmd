@@ -1,0 +1,156 @@
+---
+title: "Assignment 7a"
+format: revealjs
+editor: visual
+---
+
+## Quarto
+
+Quarto enables you to weave together content and executable code into a finished presentation. To learn more about Quarto presentations see <https://quarto.org/docs/presentations/>.
+
+## Bullets
+
+When you click the **Render** button a document will be generated that includes:
+
+-   Content authored with markdown
+-   Output from executable code
+
+## Code
+
+When you click the **Render** button a presentation will be generated that includes both content and the output of embedded code. You can embed code like this:
+
+```{r}
+games = read.csv('board_games.csv')
+games
+```
+
+```{r}
+str(games)
+
+#This dataset contains information on over 10,000 board games. Our goal is to gain an understanding of the factors that makes a game popular and be able to predict its rating. This dataset contains information on over 10,000 board games. Our goal is to gain an understanding of the factors that makes a game popular and be able to predict its rating. 
+```
+Q1
+Read the data into games using read.csv(). Split games into a train and test sample such that 70% of the data is in the train sample. To ensure a similar distribution of "rating" across the train and test samples, use createDataPartition from the caret package. Set groups to 200 and use a seed of 1031. What is the mean rating in the train sample? [Unless stated otherwise, use the train sample for conducting analysis.]
+```{r}
+library(ISLR2)
+
+library(caret)
+set.seed(1031)
+split = createDataPartition(y = games$rating, p = 0.70, list = F,groups = 200)
+train = games[split,]
+test = games[-split,]
+```
+```{r}
+mean = mean(train$rating); mean
+
+```
+
+
+Q2 Which of the following variables is most strongly correlated with game "rating"? Note, question is about strength of correlation not direction.
+
+	
+min_age
+
+max_players
+
+age_of_game
+
+playtime
+
+min_players
+
+```{r}
+cor(games$rating, games$min_age)
+cor(games$rating, games$max_players)
+cor(games$rating, games$age_of_game)
+cor(games$rating, games$playtime)
+cor(games$rating, games$min_players)
+
+```
+
+Q3 
+Which of the following is the most popular game category? Note: "Yes" in a category column indicates the game in the row was labeled as belonging to that category.
+Question 3 options:
+
+Fantasy
+
+Wargame
+
+Economic
+
+CardGame
+
+Fighting
+
+
+```{r}
+sum(train$CardGame == "Yes")
+sum(train$Economic == "Yes")
+sum(train$Fantasy == "Yes")
+sum(train$Fighting == "Yes")
+sum(train$Wargame == "Yes")
+```
+Q4 Which of the following game categories have the highest rating? Note: "Yes" in a category column indicates the game in the row was labeled as being in that category
+#To find highest user rating
+train |>
+  select(users_rated) |>
+  filter(train$CardGame == 'Yes') |>
+  slice_max(users_rated)
+#55930
+
+train |>
+  select(users_rated) |>
+  filter(train$Wargame == 'Yes') |>
+  slice_max(users_rated)
+#27008
+
+
+train |>
+  select(users_rated) |>
+  filter(train$Economic == 'Yes') |>
+  slice_max(users_rated)
+#48261
+
+train |>
+  select(users_rated) |>
+  filter(train$Fantasy == 'Yes') |>
+  slice_max(users_rated)
+#37607
+
+train |>
+  select(users_rated) |>
+  filter(train$Fighting == 'Yes') |>
+  slice_max(users_rated)
+#36394
+
+#To find highest rating
+train |>
+  group_by(train$CardGame) |>
+  summarise(mean(rating))
+#6.26
+
+train |>
+  group_by(train$Wargame) |>
+  summarise(mean(rating))
+#6.78
+
+train |>
+  group_by(train$Economic) |>
+  summarise(mean(rating))
+#6.56
+
+train |>
+  group_by(train$Fantasy) |>
+  summarise(mean(rating))
+#6.51
+
+train |>
+  group_by(train$Fighting) |>
+  summarise(mean(rating))
+#6.59
+#Wargame
+
+train |>
+  slice_max(users_rated)
+
+

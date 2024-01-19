@@ -1,0 +1,703 @@
+---
+title: "Decision Trees"
+format: html
+editor: visual
+---
+
+## Quarto
+
+Quarto enables you to weave together content and executable code into a finished document. To learn more about Quarto see <https://quarto.org>.
+
+## Running Code
+
+When you click the **Render** button a document will be generated that includes both content and the output of embedded code. You can embed code like this:
+
+```{r}
+1 + 1
+```
+
+You can add options to executable code like this
+
+```{r}
+#| echo: false
+2 * 2
+```
+
+The `echo: false` option disables the printing of code (only output is displayed).
+```{r}
+library(ISLR2)
+data(Credit)
+```
+
+```{r}
+str(Credit)
+```
+
+```{r}
+library(caret)
+set.seed(1031)
+split = createDataPartition(y = Credit$Balance, p = 0.75, list = F, groups = 10)
+train = Credit[split,]
+test[-split,]
+```
+
+```{r}
+str(train)
+```
+
+```{r}
+library(dplyr); library(tidyr); library(ggplot2)
+```
+```{r}
+train|>
+  select(is.numeric)|>
+  pivot_longer(cols = 1:7, names_to = 'var', values_to = 'values')|>
+  ggplot(aes(x=values))+
+  geom_histogram()+
+  facet_wrap(~var, scale='free')
+```
+
+
+We are trying to make a scatter plot which shows the distribution of data
+
+```{r}
+train|>
+  select(is.numeric)|>
+  pivot_longer(cols = 1:6, names_to = 'var', values_to = 'values')|>
+  ggplot(aes(x=values, y = Balance))+
+  geom_point()+
+  geom_smooth(method='lm', se=F, color='tomato')+ #this draws the red line 
+  facet_wrap(~var, scale='free')
+```
+
+
+```{r}
+install.packages(c('rpart', 'rpart.plot'))
+library(rpart); library(rpart.plot)
+
+tree = rpart(Balance ~ Age, train, method = 'anova'); tree
+```
+
+Above is a regression tree
+Whenever your outcome variable is number, we use a regression treee
+
+```{r}
+rpart.plot(tree, type = 4)
+```
+
+```{r}
+predict(tree)
+```
+```{r}
+table(round(predict(tree),0))
+      
+```
+
+```{r}
+round(100* prop.table(table(round(predict(tree),0))),0)
+```
+
+```{r}
+pred = predict(tree, data.frame(Age = 26))
+pred
+```
+
+#rating
+
+```{r}
+tree2 = rpart(Balance ~ Rating, train, method = 'anova'); tree2
+rpart.plot(tree2, type = 4)
+```
+```{r}
+predict(tree2, data.frame(Rating = 500))
+```
+
+
+```{r}
+pred = predict(tree2)
+sqrt(mean((pred - train$Balance)^2))
+```
+
+
+If you want to use all the variables
+
+```{r}
+tree = rpart(Balance~Student, train)
+rpart.plot(tree,type=4)
+```
+
+
+```{r}
+tree = rpart(Balance~., train)
+rpart.plot(tree,type=4)
+```
+
+```{r}
+tree = rpart(Balance~Own, train)
+rpart.plot(tree,type=4)    
+
+```
+
+Why did thr above result yield?
+
+```{r}
+table(train$Balance, train$Own)
+tapply(train$Balance, train$Own, 'mean')
+```
+ALL VARIABLES
+```{r}
+tree = rpart(Balance~., train)
+rpart.plot(tree)
+```
+What is the  Credit Card Balance for a 25 year old student who owns a home and has an income of $100, lives in the East Region, has. alimit of $5000, a rating of 500, has 3 cards and 16 years of education. 
+
+
+
+#As you add more predictors, your RMSE will come down
+
+```{r}
+pred = predict(tree)
+sqrt(mean((pred - train$Balance)^2))
+
+pred_test = predict(tree, newdata = test) # Why not working?
+sqrt(mean((pred_test - test$Balance)^2))
+```
+
+
+
+min and max bucket
+
+```{r}
+tree = rpart(Balance~., train, cp = 0.1) #notice when the CP changes the rmse values goes up and down; when CP is higher, the rmse goes up. As complexity of the tree goes uo, the rmse increases
+rpart.plot(tree)
+```
+```{r}
+pred = predict(tree)
+sqrt(mean((pred - train$Balance)^2))
+
+pred_test = predict(tree, newdata = test) # Why not working?
+sqrt(mean((pred_test - test$Balance)^2))
+```
+
+#left
+
+
+
+Online guides #1 Visualizing Iris Trees
+
+Step 1: load the data
+
+```{r}
+data = iris[1:100,]
+str(data)
+```
+
+```{r}
+summary(data)
+names(data)
+```
+My observations: Because these variables are numeric, we will do a repression tree.
+
+The dependent variable is species of flower and the independent varaibles are sepal le nght, speal width, petal length and petal width 
+Usually,he dependent variable does on the y axis (vertical) and the independent variables go on the x axis (Horizontal)
+We are assesing the relationship of of sepal legnth and sepal width on the species of plant
+
+```{r}
+library(ggplot2)
+ggplot(data=data, aes(x=Sepal.Length, y = Sepal.Width, color=Species))+
+  geom_point()+
+  theme_bw()
+```
+
+Now, let's make a decision tree
+
+```{r}
+library(rpart); library(rpart.plot)
+tree = rpart(Species~Sepal.Length+Sepal.Width, data, method='class')
+tree
+```
+Now that we have the numbers, we are plotting the tree
+
+```{r}
+rpart.plot(tree)
+```
+
+Now we will graph it on a scatter plot
+
+```{r}
+ggplot(data=data, aes(x=Sepal.Length, y = Sepal.Width, color=Species))+
+  geom_point()+
+  geom_vline(xintercept=5.45, size=1.4, color='black')+
+  theme_bw()
+```
+Note above that the x intercept is that black line at the centre of the graph - the highest number on x (sepal length is 5.45 therefore this is on the graph)
+
+Next we are going to add a v line based on the lowest y intercept which is 2.95
+
+```{r}
+ggplot(data=data, aes(x=Sepal.Length, y = Sepal.Width, color=Species))+
+  geom_point()+
+  geom_vline(xintercept=5.45, size=1.4, color='black')+
+  geom_segment(aes(x=4.3,xend=5.45,y=2.95,yend=2.95), size=1.4, color='black')+
+  theme_bw()
+```
+
+Next we add the highest y axis number which is 3.25 to segment the data visually
+
+```{r}
+ggplot(data=data, aes(x=Sepal.Length, y = Sepal.Width, color=Species))+
+  geom_point()+
+  geom_vline(xintercept=5.45, size=1.4, color='black')+
+  geom_segment(aes(x=4.3,xend=5.45,y=2.95,yend=2.95), size=1.4, color='black')+
+  geom_segment(aes(x=5.45,xend=7,y=3.25,yend=3.25), size=1.4, color='black')+
+  theme_bw()
+```
+
+REGRESSION TREES
+
+
+First we load the data, then we split it
+Regression trees partition the data into smaller groups that are more homogeneous with respect to a numeric outcome. 
+We use the Classification and Regression Tree (CART) methodology
+
+```{r}
+library(ISLR2)
+data(Credit)
+str(Credit)
+```
+
+Next Conduct a 75:25 stratified split of the data on the outcome variable, Balance.
+
+```{r}
+library(caret)
+set.seed(1031)
+split = createDataPartition(y = Credit$Balance, p = 0.75, list = F,groups = 10)
+train = Credit[split,]
+test = Credit[-split,]
+```
+Balance is the outcome or dependent variables whereas the other variables are independent and predictors of balance 
+
+
+Summary of the data is displayed below. Here are a few highlights and their relevance to regression trees.
+1. Outcome variable, Balance is continuous: Accordingly, we will use regression trees.
+2. Predictors include categorical and continuous variables: Trees can handle both categorical and continuous predictors. Categorical variables can be handled automatically, without dummy coding.
+3. Distribution of at least a few continuous variables appear to be skewed. Trees can effectively handle many type of predictors including those with skewed distributions. Predictors do not need to be transformed to make their distribution symmetric nor do they need to be standardized. Similarly, there is no need to create interaction terms to explore joint effect of two or more predictors.
+4. There are no missing values. While there are no missing values here, it is worth noting that Trees can effectively handle missing data by constructing surrogate splits.
+
+
+
+```{r}
+install.packages('skimr')
+library(skimr)
+skim(Credit) #this summarizes the data 
+```
+
+Examine the distribution of numeric predictors
+
+```{r}
+library(dplyr); library(tidyr)
+train %>% 
+  select(-Balance)%>%
+  select_if(is.numeric)%>%
+  pivot_longer(cols = 1:6,names_to = 'numeric_predictor', values_to = 'values'  )%>%
+  ggplot(aes(x = values))+
+  geom_histogram()+
+  facet_wrap(numeric_predictor~., scales = 'free')+
+  theme_bw()
+```
+
+Examine frequency distribution for categorical predictors
+
+```{r}
+library(dplyr); library(tidyr)
+train %>% 
+  select_if(is.factor)%>%
+  pivot_longer(cols = 1:4,names_to = 'categorical_predictor', values_to = 'values'  )%>%
+  group_by(categorical_predictor, values)%>%
+  count()%>%
+  ungroup()%>%
+  ggplot(aes(x = values, y = n))+
+  geom_col()+
+  facet_wrap(categorical_predictor~., scales = 'free')+
+  theme_bw()
+```
+Tree 1
+We will use the library rpart to estimate trees, but note there are a number of other libraries that can be used. Since we are estimating a regression tree, we will set the method to anova.
+
+#1 We will examine the impact of Age of Credit Card Balance
+
+```{r}
+library(rpart); library(rpart.plot)
+tree1 = rpart(Balance~Age,data = train, method = 'anova')
+
+tree1              
+```
+```{r}
+summary(tree1)
+```
+
+Plotting a tree, can make it easier to understand the data
+
+```{r}
+rpart.plot(tree1)
+```
+
+Based on the above result, does it seem like Age is predictive of Average Credit Card Balance? What is the predicted Credit Card Balance of a 21 year old unmarried college student? What percentage of the (train) data falls in this category?
+#my ans:420 = 19%
+
+We can use the predict function to derive the same result as above 
+
+Predict
+
+The simplicity of the Tree makes it easy to derive predictions. However, this manual approach may not scale well when wants a number of predictions. Also, for large complex trees, navigating the tree can be tedious. Like for linear regression, one can use the predict function to get point predictions or a vector of predictions. For a regression tree, the default type is “vector”.
+
+```{r}
+predict(tree1, newdata = data.frame(Age = 21), type='vector')
+```
+
+
+Predicting the first 10 observations
+
+```{r}
+predict(tree1)[1:10]
+```
+
+
+```{r}
+Credit
+```
+
+```{r}
+predict(tree1)[1:10]
+```
+
+The predictions in regression trees are the mean of the outcome variable for a given region. Each region is represented by a leaf in the Tree. Therefore, the number of unique predictions is the same as the number of leaves. One can view this in the Tree above or verify it by examining the prediction vector.
+
+
+
+```{r}
+unique(predict(tree1))
+```
+
+
+Tree 2
+Next, we will use all predictors to estimate Average Credit Card Balance.
+## Estimate
+
+```{r}
+library(rpart); library(rpart.plot)
+tree2 = rpart(Balance~.,data = train, method = 'anova')
+tree2
+```
+
+
+```{r}
+summary(tree2)
+```
+
+Let's plot it
+
+```{r}
+rpart.plot(tree2)
+```
+
+Trees automatically conduct feature selection. Of all the predictors in the dataset, only the predictors included in the Tree visualization above have an influence on Balance.
+
+The relative importance of the predictors can be determined by examining reduction in SSE attributed to each split. Intuitively, predictors that appear higher in the tree, or that appear multiple times in the tree will be more important than predictors that appear lower in the tree or not at all. Visual inspection of the above Tree indicates “Limit” is the most important, second is “Rating” and so on. Alternatively, one can extract relative importance from the Tree object. However, be aware that the Tree object, tree2 also lists variable importance for predictors not included in the final tree! (An overall measure of variable importance is the sum of the goodness of split measures for each split for which it was the primary variable, plus goodness * (adjusted agreement) for all splits in which it was a surrogate rpart Vignette, accessed on March 13, 2022. As a result, there may be differences across variable importance ranking and order in which variables enter the tree.)
+
+
+```{r}
+tree2$variable.importance
+```
+
+
+Predict
+
+Next, let us use “tree2” to construct predictions for the train sample. Since type = ‘vector’ is the default, it has not been included in predict.
+
+```{r}
+pred2 = predict(tree2)
+pred2
+```
+
+
+Let us evaluate the quality of predictions on the train sample by comparing them to the true values.
+
+```{r}
+data.frame(Predicted_Balance = pred2, 
+           Balance = train$Balance)[1:5,]
+```
+Root Mean Squared Error (rmse) can summarize the quality of predictions.
+```{r}
+rmse2 = sqrt(mean((pred2 - train$Balance)^2)); rmse2
+```
+
+An alternative to typing out the formula is library(Metrics) which implements a number of model performance functions.
+
+
+
+```{r}
+install.packages('Metrics')
+library(Metrics)
+```
+
+```{r}
+rmse(actual = train$Balance,
+     predicted = pred2)
+```
+
+Tree Control
+rpart contains a number of control parameters to affect the growth and complexity of the tree.
+
+minsplit: the minimum number of observations that must exist in a node in order for a split to be attempted.
+minbucket: the minimum number of observations in any terminal node
+maxdepth: the maximum depth of any node of the final tree
+cp: complexity parameter
+For more information on controls, run ?rpart.control or see documentation for rpart.control. These control parameters are also referred to as model hyperparameters.
+
+Among these, minsplit, minbucket, and maxdepth directly impact the size of the tree. The complexity parameter, cp is used to add a penalty for a large tree. Here size of the tree is measured by number of leaves. The penalty is the product of cp and number of leaves. So, large values of cp will result in smaller trees while small values of cp will result in larger more complex trees.
+
+We will examine the effect of changing each one of these parameters on Tree size. Our baseline for comparison is the default values used in tree2 above.
+
+MIN SPLIT
+
+Default value for minsplit is 20. Increasing minsplit leads to a smaller tree
+```{r}
+tree3 = rpart(Balance~.,data = train, method = 'anova', control = rpart.control(minsplit = 100))
+rpart.plot(tree3)
+```
+
+MINBUCKET
+
+Default value for minbucket is 6 (=20/3). Increasing minbucket leads to a smaller tree.
+
+```{r}
+tree4 = rpart(Balance~.,data = train, method = 'anova', control = rpart.control(minbucket = 25))
+rpart.plot(tree4)
+```
+
+MAXDEPTH
+Smaller the value of maxdepth, smaller the tree. A depth of 2 implies, two levels of nodes after the root node.
+
+```{r}
+tree5 = rpart(Balance~.,data = train, method = 'anova', control = rpart.control(maxdepth = 2))
+rpart.plot(tree5)
+```
+
+cp
+Larger the complexity parameter, cp, the greater the penalty for complexity which will result in smaller trees. The default value of cp is 0.01.
+
+```{r}
+tree6 = rpart(Balance~.,data = train, method = 'anova', control = rpart.control(cp = 0.1))
+rpart.plot(tree6)
+```
+
+Let us examine RMSE for a cp of 0.1 and compare that to tree2 which used the default cp of 0.01
+
+```{r}
+pred6 = predict(tree6)
+rmse6 = sqrt(mean((pred6 - train$Balance)^2)); rmse6
+```
+
+Let us experiment with a lower cp of 0.001 to see its impact on RMSE. As expected, this results in a large bushy Tree.
+
+```{r}
+tree7 = rpart(Balance~., data = train, method = 'anova', control = rpart.control(cp = 0.001))
+rpart.plot(tree7)
+```
+
+
+```{r}
+pred7 = predict(tree7)
+rmse7 = sqrt(mean((pred7 - train$Balance)^2)); rmse7
+```
+
+To sum up, the results indicate that lower the value of cp, the better the quality of predictions in the train sample.!!!!!!!
+
+```{r}
+data.frame(Tree = c('tree2', 'tree6', 'tree7'), 
+           cp = c(0.01, 0.1,  0.001), 
+           rmse_train = c(rmse2, rmse6, rmse7))%>%
+  arrange(desc(cp))
+```
+
+The ultimate test of a model is how it performs on a different sample. So, we will now evaluate the predictions of the three Tree models on the test sample beginning with tree2.
+
+```{r}
+pred2_test = predict(tree2, newdata = test, type = 'vector')
+rmse2_test = sqrt(mean((pred2_test - test$Balance)^2)); rmse2_test
+
+pred6_test = predict(tree6, newdata = test, type = 'vector')
+rmse6_test = sqrt(mean((pred6_test - test$Balance)^2)); rmse6_test
+
+pred7_test = predict(tree7, newdata = test, type = 'vector')
+rmse7_test = sqrt(mean((pred7_test - test$Balance)^2)); rmse7_test
+
+```
+
+
+```{r}
+data.frame(Tree = c('tree2', 'tree6', 'tree7'), 
+           cp = c(0.01, 0.1,  0.001), 
+           rmse_train = c(rmse2, rmse6, rmse7),
+           rmse_test = c(rmse2_test, rmse6_test, rmse7_test))%>%
+  arrange(desc(cp))
+```
+
+The above shows that the smaller the cp value, the better the tree
+
+
+
+
+
+
+
+
+CLASSIFICATION TREES
+
+A Tree is a predictive model that involves stratifying or segmenting the predictor space into a number of simple regions. Predictions are based on a summary statistic of the outcome in a given region. It is called a Decision Tree because the set of splitting rules used to segment the predictor space can be summarized in a tree.
+
+Based on the nature of the outcome variable, trees can be categorized as
+a. Regression Trees: Outcome is continuous (e.g., price in $)
+b. Classification Trees: Outcome is categorical (e.g., whether a product is purchased or not)
+
+Classification trees partition the data into smaller groups that contain a greater proportion of one of the categories of a categorical outcome. There are many approaches to constructing classification trees. One of the oldest and most widely used is the Classification and Regression Tree (CART) methodology.
+
+
+
+#1 Load data
+
+For this exercise, We will derive our data from the dataset, Credit which accompanies the ISLR2 library. The dataset contains information on credit cards and demographics for a set of 400 customers. The goal is to predict whether a person maintains a large credit balance (‘high’) or a small credit card balance (‘low’). We will create the outcome variable by doing a median split of Balance into two levels, ‘low’ and ‘high’.
+
+```{r}
+library(ISLR2)
+data(Credit)
+library(dplyr)
+Credit2 = 
+  Credit %>%
+  mutate(Balance_hilo = as.integer(Balance > median(Balance,na.rm = T)))%>%
+  mutate(Balance_hilo = factor(Balance_hilo, labels = c('low','high'),ordered = T))%>%
+  select(-Balance)
+
+Credit2
+```
+
+#splitdata 75:25 ration
+
+```{r}
+library(caret)
+set.seed(1031)
+split = createDataPartition(y = Credit2$Balance_hilo, p = 0.75, list = F)
+train = Credit2[split,]
+test = Credit2[-split,]
+```
+Explore
+Summary of the data is displayed below. Here are a few highlights and their relevance to classification trees.
+1. Outcome variable, Balance_hilo is categorical with levels, “low” and “high” indicating level of credit balance. Since the outcome variable is categorical, we will use a Classification Tree.
+2. Predictors include categorical and continuous variables: Trees can handle both categorical and continuous predictors Categorical variables can be handled automatically, without dummy coding.
+3. Distribution of at least a few continuous variables appear to be skewed. Trees can effectively handle many type of predictors including those with skewed distributions. Predictors do not need to be transformed to make their distribution symmetric nor do they need to be standardized. Similarly, there is no need to create interaction terms to explore joint effect of two or more predictors.
+4. There are no missing values. While there are no missing values here, it is worth noting that Trees can effectively handle missing data by constructing surrogate splits
+
+
+
+```{r}
+library(skimr)
+skim(Credit2)
+```
+
+Tree 1
+We will use the library rpart to estimate trees, but note there are a number of other libraries that can be used. Since we are estimating a classification tree, we will set the method to class.
+
+Estimate
+
+We will begin by predicting Credit Card Balance_hilo with just one predictor, Age.
+
+
+```{r}
+library(rpart); library(rpart.plot)
+tree1 = rpart(Balance_hilo~Age,data = train, method = 'class'); tree1
+```
+
+```{r}
+summary(tree1)
+```
+
+
+Plot the decision tree
+
+```{r}
+rpart.plot(tree1)
+```
+
+
+Since age is being used as a split in the tree, Age is predictive of Balance_hilo. Furthermore, visual of the tree can be interpreted as a series of if-else conditionals with the predicted outcome in the leaves. For instance, for a 35 year old, one can navigate through the tree to arrive at a predicted probability of 0.43 for a “high” balance. Using a default 0.5 threshold, the predicted class is “low”.
+
+To test your own understanding, see if you can find out the predictive probability and class for a 50 year old married man.
+
+```{r}
+predict(tree1, newdata = data.frame(Age = 50), type='class')
+predict(tree1, newdata = data.frame(Age = 50), type='prob')
+```
+
+
+
+Predict
+
+The simplicity of the Tree makes it easy to predict class. However, this manual approach may not scale well for a large number of predictions. Also, for large complex trees, navigating the tree can be tedious. Like for logistic regression, one can use the predict function to get a predicted probability (use type = ‘prob’) or predicted class (use type = ‘class’). Let use see if we can replicate the results from the visual of the tree.
+
+
+
+
+Predicted Probability for each class
+
+
+```{r}
+predict(tree1, newdata = data.frame(Age = 35), type='prob')
+```
+
+
+
+```{r}
+predict(tree1, newdata = data.frame(Age = 35), type='class')
+```
+
+
+You will note that the predicted class can be derived from the predictive probability for target class by using the default threshold of 0.5.
+
+```{r}
+predict(tree1, newdata = data.frame(Age = 35), type='prob')[,'high'] > 0.5
+```
+
+Next, let us examine predictions for the first ten observations. Predictions include predicted probabilities (for each class) and predicted class.
+
+
+```{r}
+data.frame(predict(tree1, type='prob')[1:10,], 
+           predicted_class = predict(tree1, type = 'class')[1:10])
+```
+
+Unlike logistic regression, classification trees generate a limited number of unique predictions, each represented by the leaf of the visual of the tree. You can verify this by mapping the unique predictions below to the leaves in the above tree plot.
+
+```{r}
+unique(predict(tree1, type = 'prob'))
+```
+
+
+
+Tree 2
+Next, we will use all predictors to predict whether a person has “high” or “low” Balance.
+
+```{r}
+library(rpart); library(rpart.plot)
+tree2 = rpart(Balance_hilo~.,data = train, method = 'class')
+summary(tree2)
+```
+
+```{r}
+rpart.plot(tree2)
+```
+
+```{r}
+tree2$variable.importance
+```
+

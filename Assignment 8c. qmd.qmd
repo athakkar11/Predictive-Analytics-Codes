@@ -1,0 +1,166 @@
+---
+title: "Assignment 8c"
+format: html
+editor: visual
+---
+
+## Quarto
+
+Quarto enables you to weave together content and executable code into a finished document. To learn more about Quarto see <https://quarto.org>.
+
+## Running Code
+
+When you click the **Render** button a document will be generated that includes both content and the output of embedded code. You can embed code like this:
+
+```{r}
+1 + 1
+```
+
+You can add options to executable code like this
+
+```{r}
+#| echo: false
+2 * 2
+```
+
+The `echo: false` option disables the printing of code (only output is displayed).
+
+
+q1 Random forest models differ from Bag models because they use a random subset of features for each bootstrapped tree. Construct a Random Forest model using library(randomForest). Set number of trees to 200. Use a seed of 1031 to ensure reproducibility of results. Call this model forest.
+
+What is the model RMSE? If your answer does not match any of the alternatives, select the one closest to your answer.
+
+```{r}
+library(randomForest)
+```
+
+
+```{r}
+set.seed(1031)
+forest = randomForest(rating~company_location+country_of_bean_origin+cocoa_percent+ingredient_Beans+ingredient_Sugar+ingredient_Cocoa_Butter+ingredient_vanilla+ingredient_lecithin+ingredient_salt+sweet+nutty+cocoa+roasty+earthy+creamy+sandy+fatty+floral+intense+spicy+sour+vanilla+fruit+molasses+woody+sticky+coffee+rich+dried.fruit, train, ntree = 200)
+
+pred_forest = predict(forest)
+rmse_train_forest = sqrt(mean((pred_forest - train$rating)^2)); rmse_train_forest
+
+```
+
+Question 2
+Random forest models use a default number of predictors (set using mtry) for each bootstrapped sample. This hyperparameter can be tuned to improve predictions. Use the library(caret) framework for tuning mtry for library(randomForest). Conduct 5-fold cross-validation to evaluate mtry values from 3 to 10. Set number of trees to 200. Use a seed of 1031 to ensure reproducibility of results.
+
+What is the value of mtry that yields the lowest cross-validation error? If your answer does not match any of the alternatives, select the one closest to your answer. Be patient with the algorithm as it may take a couple of minutes to finish.
+
+```{r}
+library(caret)
+library(randomForest)
+trControl = trainControl(method = 'cv', number = 5)
+tuneGrid = expand.grid(mtry = seq(3:10))
+set.seed(1031)
+tuned_forest = train(rating~company_location+country_of_bean_origin+cocoa_percent+ingredient_Beans+ingredient_Sugar+ingredient_Cocoa_Butter+ingredient_vanilla+ingredient_lecithin+ingredient_salt+sweet+nutty+cocoa+roasty+earthy+creamy+sandy+fatty+floral+intense+spicy+sour+vanilla+fruit+molasses+woody+sticky+coffee+rich+dried.fruit, data = train, method = 'rf', trControl = trControl, tuneGrid = tuneGrid, ntree = 200)
+forest_cv$bestTune$mtry
+
+
+```
+
+Q3 Use the best value of mtry to re-run the model, forest. Set number of trees to 200. Use a seed of 1031 to ensure reproducibility of results. Call this model tuned_forest. What is the model RMSE? If your answer does not match any of the alternatives, select the one closest to your answer.
+
+
+```{r}
+trControl = trainControl(method = 'cv', number = 5)
+tuneGrid = expand.grid(mtry = 5)
+set.seed(1031)
+forest = randomForest(rating~company_location+country_of_bean_origin+cocoa_percent+ingredient_Beans+ingredient_Sugar+ingredient_Cocoa_Butter+ingredient_vanilla+ingredient_lecithin+ingredient_salt+sweet+nutty+cocoa+roasty+earthy+creamy+sandy+fatty+floral+intense+spicy+sour+vanilla+fruit+molasses+woody+sticky+coffee+rich+dried.fruit, data = train, method = 'rf', trControl = trControl, tuneGrid = tuneGrid, mtry =5, ntree = 200)
+
+pred_forest = predict(forest)
+rmse_train_forest = sqrt(mean((pred_forest - train$rating)^2)); rmse_train_forest
+
+```
+
+
+Q4 Random forest models can also be constructed using library(ranger). The latter is a faster implementation of Random Forests, particularly suited for high dimensional data. Use this library to construct a random forest model with 200 trees. Do not set any other model hyperparameters. Use a seed of 1031 to ensure reproducibility of results. Call this model forest_ranger.
+
+What is the model RMSE? For library(ranger), results vary across Mac, Windows and Linux operating systems. However, the differences are small. So, if your answer does not match any of the alternatives, select the one closest to your answer.
+
+```{r}
+library(ranger)
+set.seed(1031)
+forest_ranger = ranger(rating~company_location+country_of_bean_origin+cocoa_percent+ingredient_Beans+ingredient_Sugar+ingredient_Cocoa_Butter+ingredient_vanilla+ingredient_lecithin+ingredient_salt+sweet+nutty+cocoa+roasty+earthy+creamy+sandy+fatty+floral+intense+spicy+sour+vanilla+fruit+molasses+woody+sticky+coffee+rich+dried.fruit, data = train, num.trees = 200)
+pred_train_ranger = predict(forest_ranger, data = train, num.trees = 200)
+rmse_train_forest_ranger = sqrt(mean((pred_train_ranger$predictions - train$rating)^2)); rmse_train_forest_ranger
+```
+
+
+Q5
+Now, let us see if we can tune model hyperparameters, mtry and min.node.size of library(ranger) to improve predictions. Use the library(caret) framework for tuning mtry and min.node.size for library(ranger). Conduct 5-fold cross-validation to evaluate mtry values from 3 to 10 and min.node.size values of 2, 3, 4, 5, and 10. Set number of trees to 200. Use a seed of 1031 to ensure reproducibility of results. Be patient with the algorithm as it may take a couple of minutes to finish.
+
+Now, use the best values of mtry and min.node.size to re-run the model, forest_ranger. Set number of trees to 200. Use a seed of 1031 to ensure reproducibility of results. Call the model tuned_forest_ranger.
+
+What is the model RMSE? For library(ranger), results vary across Mac, Windows and Linux operating systems. However, the differences are small. So, if your answer does not match any of the alternatives, select the one closest to your answer.
+
+```{r}
+library(ranger)
+library(caret)
+
+trControl=trainControl(method="cv",number=5)
+tuneGrid = expand.grid(mtry=1:ncol(train)-1, 
+                       splitrule = c('variance','extratrees','maxstat'), 
+                       min.node.size = c(2,3,4,5,10))
+set.seed(1031)
+cvModel = train(rating~company_location+country_of_bean_origin+cocoa_percent+ingredient_Beans+ingredient_Sugar+ingredient_Cocoa_Butter+ingredient_vanilla+ingredient_lecithin+ingredient_salt+sweet+nutty+cocoa+roasty+earthy+creamy+sandy+fatty+floral+intense+spicy+sour+vanilla+fruit+molasses+woody+sticky+coffee+rich+dried.fruit, data=train, method="ranger", num.trees=200, trControl=trControl, tuneGrid=tuneGrid)
+cvModel$bestTune
+
+pred_train_cvModel = predict(cvModel, data = train, num.trees = 200)
+rmse_train_cvModel = sqrt(mean((pred_train_cvModel$predictions - train$rating)^2)); rmse_train_cvModel
+
+```
+
+Q6 Like bag and forest models, boosting models are ensemble models that derive predictions from a number of trees. The key difference is that in boosting, trees are grown sequentially, each tree is grown using information from previously grown trees. Generally speaking, boosting models don't work well out of the box. Model hyperparameters need to be tuned in order to get the most out of a boosting model, but this can take a long time. So, for this question, you are being provided with the results of tuning a boosting model for the current data.
+
+Construct a boosting model using library(gbm). Set n.trees to 100, distribution to "gaussian", interaction.depth to 3, shrinkage to 0.081, and n.minobsinnode to 2. Use a seed of 1031 to ensure reproducibility of results. Call this model boost.
+
+What is the model RMSE? If your answer does not match any of the alternatives, select the one closest to your answer.
+
+```{r}
+library(gbm)
+set.seed(617)
+boost = gbm(rating~company_location+country_of_bean_origin+cocoa_percent+ingredient_Beans+ingredient_Sugar+ingredient_Cocoa_Butter+ingredient_vanilla+ingredient_lecithin+ingredient_salt+sweet+nutty+cocoa+roasty+earthy+creamy+sandy+fatty+floral+intense+spicy+sour+vanilla+fruit+molasses+woody+sticky+coffee+rich+dried.fruit,
+            data=train,
+            distribution="gaussian",
+            n.trees = 100,
+            interaction.depth = 2,
+            shrinkage = 0.081, n.minobsinnode=c(2)
+pred_train = predict(boost, n.trees=100)
+rmse_train_boost = sqrt(mean((pred_train - train$rating)^2)); rmse_train_boost
+```
+
+
+
+
+Q7 Ultimately, the success of a model depends on how well it performs on unseen data. Which of the following models constructed have the lowest RMSE in the "test" data?
+
+```{r}
+pred_train = predict(boost, n.trees=100)
+rmse_train_boost = sqrt(mean((pred_train - train$rating)^2)); rmse_train_boost
+# 0.3693364
+
+pred_test_tf = predict(tuned_forest, newdata = test)
+rmse_test_tuned_forest = sqrt(mean((pred_test_tf - test$rating)^2)); rmse_test_tuned_forest
+#0.3763487 
+
+pred_test_fr = predict(tuned_forest_ranger, data = test, num.trees = 200)
+rmse_test_tuned_forest_ranger = sqrt(mean((pred_test_fr$predictions - test$rating)^2)); rmse_test_tuned_forest_ranger
+# 0.3768569
+
+pred_test_tt = predict(tuned_tree, newdata = test)
+rmse_tt_tree = sqrt(mean((pred_test_tt - test$rating)^2)); rmse_tt_tree
+# 0.3987792
+
+pred_rf = predict(bag, newdata = test)
+rmse_bag_randomforest = sqrt(mean((pred_rf - test$rating)^2)); rmse_bag_randomforest
+# 0.3883611
+
+pred_boost = predict(boost, newdata = test, n.trees=100)
+rmse_test_boost = sqrt(mean((pred_boost - test$rating)^2)); rmse_test_boost
+# 0.3814833
+
+```
+

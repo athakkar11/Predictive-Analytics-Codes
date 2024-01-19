@@ -1,0 +1,377 @@
+---
+title: "Data Tidying - Parsing"
+format: html
+editor: visual
+---
+
+## Quarto
+
+Quarto enables you to weave together content and executable code into a finished document. To learn more about Quarto see <https://quarto.org>.
+
+## Running Code
+
+When you click the **Render** button a document will be generated that includes both content and the output of embedded code. You can embed code like this:
+
+```{r}
+1 + 1
+```
+
+You can add options to executable code like this
+
+```{r}
+#| echo: false
+2 * 2
+```
+
+The `echo: false` option disables the printing of code (only output is displayed).
+
+Variable Class Data imported must assign the correct class to variables:
+
+Numbers to a class like integer or numeric String to character Boolean to logical Dates to a Date class Categorical variables to a factor and so on Base R read functions such as read.table() and read.csv() generally assign variables the correct class. An alternative that is rapidly gaining in popularity is functions from library(readr) such as read_csv().
+
+PARSING
+
+```{r}
+library(readr)
+parse_number('$25')
+parse_number('25% increase in wages')
+parse_number('increase in sales of €123.456,78')
+parse_number('increase in sales of €123.456,78',locale = locale(grouping_mark = '.')) 
+```
+
+Parsing Words
+
+Words As such, words are easy to parse. But this simple task is complicated by the use of special symbols (e.g., Häagen-Dazs), non-english languages, and emojis(e.g., 💩). The ASCII system of encoding characters was not designed for such use cases. This has given way to UTF-8, a more expansive and universal character coding format that extends the lexicon of ASCII. However, UTF-8 encoding may not be human readable. Would you like ice cream from \x48\xc3\xa4\x61\x67\x65\x6e\x2d\x44\x61\x7a\x73? readr::parse_character works well for parsing unusual strings.
+
+```{r}
+library(readr)
+parse_character('\x48\xc3\xa4\x61\x67\x65\x6e\x2d\x44\x61\x7a\x73')
+parse_character("\U0001F4A9")
+```
+
+Parsing dates
+
+The conventions for expressing date and time vary across the world. For e.g., in the US, we would refer to the day we got independence as 7/4/1776 while those in India would refer to this day as 4/7/1776. Oddly enough, neither conforms to the ISO8601 standard of 1776-07-04. Let us convert two different date formats to the standard format
+
+```{r}
+as.Date('July 4, 1776',format='%B %d, %Y')
+```
+
+You may wonder about the value supplied to the format argument. The symbols in the format argument are used to define the date and time to be parsed. Here is a list of the symbols and what they indicate
+
+Year %Y (4 digits) %y (2 digits); 00-69 -\> 2000-2069, 70-99 -\> 1970-1999
+
+Month %m (2 digits) %b (abbreviated name, like "Jan") %B (full name, "January")
+
+Day %d (2 digits). %e (optional leading space)
+
+Time %H 0-23 hour %I 0-12, must be used with %p %p AM/PM indicator %M minutes %S integer seconds %OS real seconds %Z Time zone (as name, e.g. America/Chicago) %z (as offset from UTC, e.g. +0800)
+
+Non-digits %. skips one non-digit character %\* skips any number of non-digits
+
+Here is another example of date parsing using: 4/7/1776
+
+```{r}
+as.Date('4/7/1776',format='%d/%m/%Y')
+as.Date('4/7/1776',format='%d/%m/%Y')
+```
+
+```{r}
+library(lubridate)
+mdy('7/4/1776')
+dmy('4/7/1776')
+mdy_hms('July 4, 1776 3:25:13 pm',tz = 'US/Eastern')
+```
+
+```{r}
+month(mdy('7/4/1776'),label = T)
+```
+
+```{r}
+wday(mdy('7/4/1776'),label = T)
+```
+
+```{r}
+location = c('USA, north america','China,asia','India, asia', 'Russia, asia','France, europe','UK, europe')
+national_day = c('July 4, 1776','October 1, 1949','August 15, 1947','June 12, 1990','July 14, 1789','none')
+national_day_alt = c('4/7/1776','1/10/1949','15/8/1947','12/6/1990','14/7/1789','none')
+per_capita_dollars = c('$65,280.70','$10,261.70','$2,104.10','$11,585.00','$40,493.90','$42,300.30')
+per_capita_euros = c('55.488,59 Euro','8.722,44 Euro','1.788,48 Euro','9.847,25 Euro','34.419,82 Euro','35.955,26 Euro')
+messy_data = data.frame(location, national_day, national_day_alt, per_capita_dollars,per_capita_euros)
+messy_data
+```
+
+```{r}
+library(dplyr)
+library(readr)
+messy_data %>%
+  mutate(per_capita_dollars = parse_number(per_capita_dollars))
+```
+
+```{r}
+messy_data %>%
+  mutate(per_capita_dollars = parse_number(per_capita_dollars))
+```
+
+```{r}
+messy_data %>%
+  mutate(per_capita_dollars = parse_number(per_capita_dollars))%>%
+  mutate(per_capita_euros = parse_number(per_capita_euros, locale = locale(grouping_mark = '.')))
+```
+
+Date Month Year
+
+```{r}
+library(lubridate)
+messy_data %>%
+  mutate(per_capita_dollars = parse_number(per_capita_dollars))%>%
+  mutate(per_capita_euros = parse_number(per_capita_euros, locale = locale(grouping_mark = '.')))%>%
+  mutate(national_day = mdy(national_day))%>%
+ mutate(national_day_alt = dmy(national_day_alt))
+```
+
+Parsing location
+
+```{r}
+library(stringr)
+
+messy_data %>%
+  mutate(per_capita_dollars = parse_number(per_capita_dollars))%>%
+  mutate(per_capita_euros = parse_number(per_capita_euros, locale = locale(grouping_mark = '.')))%>%
+  mutate(national_day = mdy(national_day))%>%
+  mutate(national_day_alt = dmy(national_day_alt))%>%
+  mutate(country = str_extract(location,pattern = '[A-Za-z]+'))%>%
+  mutate(continent = str_to_title(str_extract(location,pattern = '\\b[^,]+$')) )%>%
+  select(-location)%>%
+  select(country,continent,everything())
+
+```
+
+SEPARATING LOCATION
+
+```{r}
+library(tidyr)
+
+messy_data %>%
+  mutate(per_capita_dollars = parse_number(per_capita_dollars))%>%
+  mutate(per_capita_euros = parse_number(per_capita_euros, locale = locale(grouping_mark = '.')))%>%
+  mutate(national_day = mdy(national_day))%>%
+  mutate(national_day_alt = dmy(national_day_alt))%>%
+  separate(col = location,into = c('country','continent'), sep = ',')%>%
+  mutate(continent = str_trim(str_to_title(continent)))%>%
+  select(country,continent,everything())
+```
+
+Continent - East & West
+
+```{r}
+library(forcats)
+messy_data %>%
+  mutate(per_capita_dollars = parse_number(per_capita_dollars))%>%
+  mutate(per_capita_euros = parse_number(per_capita_euros, locale = locale(grouping_mark = '.')))%>%
+  mutate(national_day = mdy(national_day))%>%
+  mutate(national_day_alt = dmy(national_day_alt))%>%
+  separate(col = location,into = c('country','continent'), sep = ',')%>%
+  mutate(continent = str_trim(str_to_title(continent)))%>%
+  select(country,continent,everything())%>%
+  mutate(continent = fct_recode(continent, 'West' = 'North America', 'West' = 'Europe', 'East' = 'Asia'))%>%
+  rename('zone' = 'continent')
+```
+
+
+Practice parsing data
+
+```{r}
+library(readr)
+parse_number('$25')
+```
+
+```{r}
+parse_number('25% increase in wages')
+```
+
+```{r}
+parse_number('increase in sales of €123.456,78',locale = locale(grouping_mark = '.'))
+```
+
+CHARACTERS
+
+```{r}
+library(readr)
+parse_character('\x48\xc3\xa4\x61\x67\x65\x6e\x2d\x44\x61\x7a\x73')
+```
+
+
+DATES
+
+```{r}
+as.Date('July 4, 1776',format='%b %d, %Y')
+```
+
+lubridate provides a number of simple functions to convert date and time to the ISO standard.
+
+```{r}
+library(lubridate)
+mdy('7/4/1776')
+```
+
+
+```{r}
+dmy('4/7/1776')
+```
+
+
+```{r}
+mdy_hms('July 4, 1776 3:25:13 pm',tz = 'US/Eastern')
+```
+
+Once the date is converted to standard format, there are a number of simple functions to extract components of the date, such as month of the year, and day of week.
+
+```{r}
+month(mdy('7/4/1776'),label = T)
+```
+
+```{r}
+wday(mdy('7/4/1776'),label = T)
+```
+
+
+
+DATA WRANGLING
+
+
+First, let's create a dataframe
+
+```{r}
+location = c('USA, north america','China,asia','India, asia', 'Russia, asia','France, europe','UK, europe')
+national_day = c('July 4, 1776','October 1, 1949','August 15, 1947','June 12, 1990','July 14, 1789','none')
+national_day_alt = c('4/7/1776','1/10/1949','15/8/1947','12/6/1990','14/7/1789','none')
+per_capita_dollars = c('$65,280.70','$10,261.70','$2,104.10','$11,585.00','$40,493.90','$42,300.30')
+per_capita_euros = c('55.488,59 Euro','8.722,44 Euro','1.788,48 Euro','9.847,25 Euro','34.419,82 Euro','35.955,26 Euro')
+messy_data = data.frame(location, national_day, national_day_alt, per_capita_dollars,per_capita_euros)
+
+messy_data
+```
+
+per_capita_dollars
+
+```{r}
+library(dplyr); library(readr)
+messy_data %>%
+  mutate(per_capita_dollars = parse_number(per_capita_dollars))
+```
+
+per_capita_euros
+
+```{r}
+messy_data %>%
+  mutate(per_capita_euros = parse_number(per_capita_euros,locale = locale(grouping_mark = '.')))
+```
+
+national_day
+
+Date format used is Month, Date, Year.
+
+```{r}
+messy_data %>%
+  mutate(per_capita_dollars = parse_number(per_capita_dollars))%>%
+  mutate(per_capita_euros = parse_number(per_capita_euros, locale = locale(grouping_mark = '.')))%>%
+  mutate(national_day = mdy(national_day))
+
+  
+```
+
+national_day_alt
+This variable expresses the date in a different format.
+
+```{r}
+messy_data %>%
+  mutate(per_capita_dollars = parse_number(per_capita_dollars))%>%
+  mutate(per_capita_euros = parse_number(per_capita_euros, locale = locale(grouping_mark = '.')))%>%
+  mutate(national_day = mdy(national_day))%>%
+  mutate(national_day_alt = dmy(national_day_alt))
+
+```
+
+Parsing location
+
+Location includes both country and continent. Let us extract each one of these. Rather than using Base R functions, we are going to use functions from library(stringr) (built on library(stringi)). We will make use of regular expressions to specify the format of the string.
+
+
+```{r}
+library(stringr)
+messy_data %>%
+  mutate(per_capita_dollars = parse_number(per_capita_dollars))%>%
+  mutate(per_capita_euros = parse_number(per_capita_euros, locale = locale(grouping_mark = '.')))%>%
+  mutate(national_day = mdy(national_day))%>%
+  mutate(national_day_alt = dmy(national_day_alt))%>%
+  mutate(country = str_extract(location,pattern = '[A-Za-z]+'))%>%
+  mutate(continent = str_to_title(str_extract(location,pattern = '\\b[^,]+$')) )%>%
+  select(-location)%>%
+  select(country,continent,everything())
+```
+
+
+```{r}
+location = c('USA, north america','China,asia','India, asia', 'Russia, asia','France, europe','UK, europe')
+national_day = c('July 4, 1776','October 1, 1949','August 15, 1947','June 12, 1990','July 14, 1789','none')
+national_day_alt = c('4/7/1776','1/10/1949','15/8/1947','12/6/1990','14/7/1789','none')
+per_capita_dollars = c('$65,280.70','$10,261.70','$2,104.10','$11,585.00','$40,493.90','$42,300.30')
+per_capita_euros = c('55.488,59 Euro','8.722,44 Euro','1.788,48 Euro','9.847,25 Euro','34.419,82 Euro','35.955,26 Euro')
+messy_data = data.frame(location, national_day, national_day_alt, per_capita_dollars,per_capita_euros)
+
+messy_data
+```
+
+Separating location
+
+```{r}
+library(tidyr)
+messy_data %>%
+  mutate(per_capita_dollars = parse_number(per_capita_dollars))%>%
+  mutate(per_capita_euros = parse_number(per_capita_euros, locale = locale(grouping_mark = '.')))%>%
+  mutate(national_day = mdy(national_day))%>%
+  mutate(national_day_alt = dmy(national_day_alt))%>%
+  separate(col = location,into = c('country','continent'), sep = ',')%>%
+  mutate(continent = str_trim(str_to_title(continent)))%>%
+  select(country,continent,everything())
+```
+
+
+
+Content
+
+Let us say we are interested in categorizing the countries as East and West rather than based on the continent they belong to. While reducing and relabeling levels can be done by converting continent to a factor vector and applying some functions, most users are switching to library(forcats) as the functions are a lot simpler to implement.
+
+
+```{r}
+location = c('USA, north america','China,asia','India, asia', 'Russia, asia','France, europe','UK, europe')
+national_day = c('July 4, 1776','October 1, 1949','August 15, 1947','June 12, 1990','July 14, 1789','none')
+national_day_alt = c('4/7/1776','1/10/1949','15/8/1947','12/6/1990','14/7/1789','none')
+per_capita_dollars = c('$65,280.70','$10,261.70','$2,104.10','$11,585.00','$40,493.90','$42,300.30')
+per_capita_euros = c('55.488,59 Euro','8.722,44 Euro','1.788,48 Euro','9.847,25 Euro','34.419,82 Euro','35.955,26 Euro')
+messy_data = data.frame(location, national_day, national_day_alt, per_capita_dollars,per_capita_euros)
+
+messy_data
+```
+
+
+```{r}
+library(forcats)
+messy_data %>%
+  mutate(per_capita_dollars = parse_number(per_capita_dollars))%>%
+  mutate(per_capita_euros = parse_number(per_capita_euros, locale = locale(grouping_mark = '.')))%>%
+  mutate(national_day = mdy(national_day))%>%
+  mutate(national_day_alt = dmy(national_day_alt))%>%
+  separate(col = location, into = c('country', 'continent'), sep = ',')%>%
+  mutate(continent = str_trim(str_to_title(continent)))%>%
+  select(continent,country,everything())%>%
+  mutate(continent = fct_recode(continent, 'West' = 'North America', 'West' = 'Europe', 'East' = 'Asia'))%>%
+  rename('zone' = 'continent')
+  
+  
+  
+  
+
+```
+

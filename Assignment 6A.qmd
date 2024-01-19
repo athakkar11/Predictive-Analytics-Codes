@@ -1,0 +1,253 @@
+---
+title: "Assignment 6A"
+format: html
+editor: visual
+---
+
+## Quarto
+
+Quarto enables you to weave together content and executable code into a finished document. To learn more about Quarto see <https://quarto.org>.
+
+## Running Code
+
+When you click the **Render** button a document will be generated that includes both content and the output of embedded code. You can embed code like this:
+
+```{r}
+1 + 1
+```
+
+You can add options to executable code like this
+
+```{r}
+#| echo: false
+2 * 2
+```
+
+The `echo: false` option disables the printing of code (only output is displayed).
+
+
+```{r}
+wine3 = read.csv('/Users/anshitathakkar/Documents/Predictive Analytics/wine3.csv')
+wine3
+```
+
+
+```{r}
+wine3 = read.table("wine3.csv",header=TRUE,sep=";")
+wine3
+```
+
+```{r}
+library(caret)
+set.seed(1031)
+split = createDataPartition(y=wine3$quality,p = 0.7,list = F,groups = 100)
+train = wine3[split,]
+test = wine3[-split,]
+```
+
+```{r}
+str(train)
+```
+
+```{r}
+train
+```
+
+
+```{r}
+nrow(wine3)
+```
+```{r}
+ncol(wine3)
+```
+
+```{r}
+cor(train[,-12])
+```
+
+```{r}
+round(cor(train[,-12]), 2)*100
+```
+
+
+
+```{r}
+library(tidyr); library(dplyr); library(ggplot2)
+corMatrix = as.data.frame(cor(train[,-12]))
+corMatrix$var1 = rownames(corMatrix)
+
+corMatrix %>%
+  gather(key=var2,value=r,1:11)%>%
+  arrange(var1,desc(var2))%>%
+  ggplot(aes(x=var1,y=reorder(var2, order(var2,decreasing=F)),fill=r))+
+  geom_tile()+
+  geom_text(aes(label=round(r,2)),size=3)+
+  scale_fill_gradientn(colours = c('#d7191c','#fdae61','#ffffbf','#a6d96a','#1a9641'))+
+  theme(axis.text.x=element_text(angle=75,hjust = 1))+xlab('')+ylab('')
+```
+
+
+```{r}
+library(ggcorrplot)
+ggcorrplot(cor(train),
+           method = 'square',
+           type = 'lower',
+           show.diag = F,
+           colors = c('#e9a3c9', '#f7f7f7', '#a1d76a'))
+```
+Models - multivariate relationships
+
+```{r}
+model = lm(quality~.,train)
+library(broom)
+summary(model) %>%
+  tidy()
+```
+
+
+```{r}
+library(car)
+vif(model)
+```
+
+
+BEST SUBSET 
+
+```{r}
+# install.packages('leaps')
+library(leaps)
+subsets = regsubsets(quality~.,data=train, nvmax=11)
+summary(subsets)
+```
+
+
+
+LASSO REGRESSION
+
+```{r}
+set.seed(617)
+library(glmnet)
+cv_lasso = cv.glmnet(x = x, 
+                     y = y, 
+                     alpha = 1,
+                     type.measure = 'mse')
+
+plot(cv_lasso)
+```
+
+```{r}
+cv_lasso
+```
+
+```{r}
+cv_lasso$lambda.min
+```
+
+
+Assignment 6A
+
+```{r}
+HouseSales = read.csv('/Users/anshitathakkar/Documents/Predictive Analytics/HouseSales.csv')
+HouseSales
+```
+
+Question 1 (2 points) 
+ 
+Let us start by splitting the data into a train and test sample such that 70% of the data is in the train sample. Use createDataPartition from the caret package with groups = 100 and list=F. Set seed to 1031 and be sure to do this just before passing createDataPartition()
+
+What is the average house price in the train sample?
+
+```{r}
+library(caret)
+set.seed(1031)
+split = createDataPartition(y=HouseSales$price,p = 0.7,list = F,groups = 100)
+train = HouseSales[split,]
+test = HouseSales[-split,]
+
+str(HouseSales)
+```
+
+```{r}
+mean(train$price)         
+```
+
+```{r}
+ncol(HouseSales)
+```
+
+Q2
+Now, examine bivariate correlations with price to identify variables that are weakly related to (or not relevant) for predicting price. Which of the following variables has the weakest relationship with price?
+Question 2 options:
+
+grade
+
+bathrooms
+
+sqft_lot
+
+condition
+
+bedrooms
+
+
+```{r}
+cor(train[,-12])
+```
+
+Q3  
+ 
+Now, examine correlations amongst the predictors. Which pair has the highest bivariate correlation? You can visualize the relationship by running the following code. This code assumes the train sample is called train.  
+
+install.packages('ggcorrplot')
+library(ggcorrplot)
+ggcorrplot(cor(train[,c(3:7, 10:13,16)]),method = 'square',type = 'lower', colors=c('red3','white','green3'))
+However, to answer the question, you will have to examine bivariate correlations and answer the question: which pair has the highest bivariate correlation?
+Question 3 options:
+
+sqft_basement and sqft_lot
+
+sqft_living and sqft_lot
+
+sqft_basement and age
+
+sqft_living and bathrooms
+
+```{r}
+install.packages('ggcorrplot')
+library(ggcorrplot)
+ggcorrplot(cor(train[,c(3:7, 10:13,16)]),method = 'square',type = 'lower', colors=c('red3','white','green3'))
+```
+Q4 Theory or domain knowledge can help identify sources of multicollinearity. The area of a house (sqft_living) is the sum of area above the basement (sqft_above) and the basement (sqft_basement). This is useful to know because multicollinearity can arise not only from associations between a pair of predictors but also between a linear combination of predictors. But, first let's verify this by computing the correlation between sqft_living and the sum of sqft_above and sqft_basement. What is the correlation?
+
+```{r}
+model = lm(price~.,train)
+
+summary(model)
+summary(model) %>%
+  tidy()
+
+cor(train$sqft_living,train$sqft_above+train$sqft_basement)
+```
+
+Q5 As is apparent from the previous question, the threat of collinearity can also come from linear relationships between sets of variables. One way to assess the threat of multicollinearity in a linear regression is to compute the Variance Inflating Factor (VIF). To do this, run a multiple regression model with the following predictors:
+
+bedrooms, bathrooms, sqft_living, sqft_lot, floors, waterfront, view, condition, grade, age
+ 
+Call this model1. Now, use vif() from library(car) as follows
+
+# install.packages('car')
+library(car)
+vif(model1)
+Which predictor has the highest VIF?
+
+
+```{r}
+# install.packages('car')
+library(car)
+
+model1 = lm(price~bedrooms+bathrooms+sqft_living+sqft_lot+ 
+            floors+waterfront+view+condition+grade+age, train)
+
+vif(model1)
+```
+

@@ -1,0 +1,235 @@
+---
+title: "Assignment 3A"
+format: html
+editor: visual
+---
+
+## Quarto
+
+Quarto enables you to weave together content and executable code into a finished document. To learn more about Quarto see <https://quarto.org>.
+
+## Running Code
+
+When you click the **Render** button a document will be generated that includes both content and the output of embedded code. You can embed code like this:
+
+```{r}
+1 + 1
+```
+
+You can add options to executable code like this
+
+```{r}
+#| echo: false
+2 * 2
+```
+
+The `echo: false` option disables the printing of code (only output is displayed).
+
+
+```{r}
+setwd('/Users/anshitathakkar/Documents/Predictive Analytics')
+dat_reg = read.csv('data_reg.csv')
+dat_class = read.csv('dat_class.csv')
+```
+
+
+```{r}
+dat_reg
+```
+
+```{r}
+dat_class
+```
+
+
+Question 1
+
+
+An analyst is interested in making good predictions but doesn't care much about inference or interpretability of the model. Which of the following techniques should the analyst use?
+Question 1 options:
+
+Lasso
+
+Deep Learning # I chose this
+
+Trees
+
+Linear Regression
+
+
+
+
+Question 2
+
+An analyst collects a set of data on the Top 500 firms in the US. For each firm she records profit, number of employees, industry, and CEO salary. She is interested in understanding which factors affect CEO salary. Which of the two is the analyst most interested in?
+Question 2 options:
+
+Prediction # I chose this
+
+Inference
+
+Question 3
+
+A researcher is using a set of price, and promotion variables (e.g., size of discount, special) to predict whether a shopper buys Citrus Hill or Minute Maid orange juice. The data is contained in the dataset OJ which is included with the ISLR package. Run the following code to inspect the data.
+
+library(ISLR) 
+str(OJ)
+
+```{r}
+install.packages('ISLR')
+library(ISLR) 
+str(OJ)
+```
+
+Is this a regression problem or classification problem?
+Question 3 options:
+
+Regression #I chose this
+
+Classification
+
+
+Question 4
+
+The dataset, "dat_reg" contains information on the price a house sold for and three sets of predictions in variables "pred1", "pred2", and "pred3". 
+
+Based on this data, what is the Root Mean Squared Error (RMSE) for pred1?
+
+```{r}
+rmse_val = rmse(dat_reg$sales, dat_reg$pred1)
+rmse_val
+```
+
+```{r}
+dat_reg = data.frame(true = dat_reg$sales, 
+           pred1 = dat_reg$pred1, 
+           e = dat_reg$pred1-dat_reg$sales)
+
+dat_reg
+
+
+#2 Mean Squared Error
+
+dat_reg$e
+MSE = mean(dat_reg$e^2)
+MSE
+
+```
+
+
+
+```{r}
+rmse1 = sqrt(mean(dat_reg$e^2))
+rmse1
+
+
+
+install.packages("metrics")
+install.packages("ISLR")
+library(ModelMetrics)
+library(ISLR)
+rmse_val <- rmse(dat_reg$sales, dat_reg$pred1)
+```
+
+Q 5. Based on the dataset, dat_reg, what is the R-squared value for pred1?
+
+```{r}
+#mean absolute error
+
+mean(abs(dat_reg$e))
+
+#mean absolute percentage error
+
+mean(100*abs(dat_reg$e)/dat_reg$sales)
+
+
+
+sse = sum(dat_reg$e^2)                      # sum of squared error
+sst = sum((dat_reg$true - mean(dat_reg$true))^2)      # sum of squared total
+1 - sse/sst
+
+
+```
+
+
+Q 6.
+
+Based on the dataset, "dat_reg", which of the three predictions has the smallest MSE (mean squared error)?
+
+```{r}
+setwd('/Users/anshitathakkar/Documents/Predictive Analytics')
+dat_reg2 = read.csv('data_reg.csv')
+
+dat_reg2
+
+dat_reg_MSE = data.frame(true = dat_reg$sales, pred1 = dat_reg$pred1, pred2 = dat_reg$pred2, pred3 = dat_reg$pred3,
+           e1 = dat_reg$pred1-dat_reg$sales, e2 = dat_reg$pred2-dat_reg$sales, e3 = dat_reg$pred3-dat_reg$sales)
+dat_reg_MSE
+```
+
+```{r}
+sum(is.na(dat_reg$pred1))
+sum(is.na(dat_reg$sales))
+
+any(is.na(dat_reg$e1))
+any(!is.numeric(dat_reg$e1))
+
+dat_reg <- dat_reg[complete.cases(dat_reg$pred1, dat_reg$sales), ]
+
+
+#2 Mean Squared Error
+
+MSE_pred1 = mean(dat_reg$e1^2)
+
+MSE_pred1 <- mean((dat_reg$pred1 - dat_reg$sales)^2)
+MSE_pred2 <- mean((dat_reg$pred2 - dat_reg$sales)^2)
+MSE_pred3 <- mean((dat_reg$pred3 - dat_reg$sales)^2)
+
+MSE_pred1
+MSE_pred2
+MSE_pred3
+
+```
+
+
+Q7
+The dataset, "dat_class" contains information on whether a house sold (1) or not (0) and three sets of predictions in variables "pred1", "pred2", and "pred3". Predictions are on a 0-1 probability scale. 
+
+What is the accuracy for "pred1"? Use a probability threshold of 0.5 so that values less than or equal to 0.5 are classified as 0 and those greater than 0.5 as 1.
+
+```{r}
+
+dat_class
+```
+
+```{r}
+library(dplyr)
+
+dat_class <- dat_class %>% mutate(pred1_bin = ifelse(pred1 > 0.5, 1, 0))
+dat_class
+
+accuracy <- sum(dat_class$sold == dat_class$pred1_bin) / nrow(dat_class)
+accuracy
+```
+
+Q 8 Based on the dataset, "dat_class", what is the accuracy for "pred2"? Use a probability threshold of 0.5 so that values less than or equal to 0.5 are classified as 0 and those greater than 0.5 as 1.
+
+```{r}
+dat_class <- dat_class %>% mutate(pred2_bin = ifelse(pred2 > 0.5, 1, 0))
+dat_class
+
+accuracy1 <- sum(dat_class$sold == dat_class$pred2_bin) / nrow(dat_class)
+accuracy1
+```
+
+Q 9
+Based on the dataset, dat_class, which of the following has the highest accuracy?
+
+```{r}
+dat_class <- dat_class %>% mutate(pred3_bin = ifelse(pred3 > 0.5, 1, 0))
+dat_class
+
+accuracy2 <- sum(dat_class$sold == dat_class$pred3_bin) / nrow(dat_class)
+accuracy2
+```
+

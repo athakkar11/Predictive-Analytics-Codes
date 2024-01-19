@@ -1,0 +1,221 @@
+---
+title: "Visual Summary"
+format: html
+editor: visual
+---
+
+## Quarto
+
+Quarto enables you to weave together content and executable code into a finished document. To learn more about Quarto see <https://quarto.org>.
+
+## Running Code
+
+When you click the **Render** button a document will be generated that includes both content and the output of embedded code. You can embed code like this:
+
+```{r}
+1 + 1
+```
+
+You can add options to executable code like this
+
+```{r}
+#| echo: false
+2 * 2
+```
+
+The `echo: false` option disables the printing of code (only output is displayed).
+
+Visualization
+There are three general visualization packages in R: graphics, lattice, and ggplot2
+
+```{r}
+library(graphics); library(lattice); library(ggplot2)
+
+```
+
+Each chart built with ggplot2 must include the following
+
+Data
+Aesthetic mapping (aes)
+
+Describes how variables are mapped onto graphical attributes
+Visual attribute of data including x-y axes, color, fill, shape, and alpha
+Geometric objects (geom)
+
+Determines how values are rendered graphically, as bars (geom_bar), scatterplot (geom_point), line (geom_line), etc.
+Other layers are optional
+
+Thus, the template for graphic in ggplot2 is:
+
+ggplot(data = <Enter Data Here>,  
+       mapping = aes(<Enter Aesthetic(s) here>))+   
+  <Enter geom function here>                        
+  ...                                           
+  
+  
+```{r}
+mpg
+summary(mpg)
+summary(mpg$drv)
+mpg$drv
+```
+
+  
+```{r}
+ggplot(data=mpg, mapping = aes(x=hwy)) + geom_histogram()
+```
+  
+  
+```{r}
+hist(mpg$hwy)
+```
+  
+  
+  
+  Defining binwith (this comes where geom is)
+  
+  
+```{r}
+ggplot(data = mpg, mapping = aes(x = hwy)) + geom_histogram(binwidth = 2)
+```
+  
+Changing color
+We change it with aesthetic and define the factor
+
+```{r}
+ggplot(data = mpg, mapping = aes(x = hwy,fill=factor(year))) + geom_histogram(binwidth = 2)
+```
+
+  
+  FREQUENCY POLYGON
+  We can use both fill and color to change the color
+  
+```{r}
+ggplot(data = mpg, mapping = aes(x = hwy, color=factor(year))) + geom_freqpoly(size=1.2)
+```
+  
+  DRV
+  
+```{r}
+ggplot(data = mpg, mapping = aes(x = hwy, color=factor(drv))) + geom_freqpoly(size=1.2)
+```
+  
+  
+  Density curves
+  
+```{r}
+ggplot(data=mpg,aes(x=hwy,color=factor(drv)))+geom_density(size=1.2)
+```
+  
+  
+  BOX PLOTS
+  
+```{r}
+ggplot(data = mpg, aes(x=hwy, color=factor(drv))) + geom_boxplot(size=1.2)
+```
+  
+Box plot by year
+Boxplots by default only show outliers, so here we will reveal all the data. to prevent overplotting, we will add some noise (or jitter) to the points.
+
+```{r}
+ggplot(data = mpg, aes(x=factor(year), y=hwy)) + geom_boxplot() + geom_jitter(width = 0.2, alpha = 0.2)
+```
+Highlight outliers: outlier.color=red * Label outliers: geom_text(data=mpg[mpg
+hwy>quantile(mpghwy,0.99),], aes(label=manufacturer),nudge_x = 0.2) * Add color to the boxes and lines: fill=‘cadetblue’,color=‘sienna’
+
+
+ggplot(data = mpg, aes(x=factor(year), y=hwy)) + geom_boxplot(outlier.color='red, fill='cadetblue', color='sienna') + geo_text(data=mpg[mpg$hwy>quantile(mpg$hwy,0.99),], aes(label=manufacturer), nudge_x = 0.2)
+
+
+  
+
+```{r}
+ggplot(data=mpg,aes(x=factor(year),y=hwy))+
+  geom_boxplot(outlier.color='red', fill='cadetblue',color='sienna')+
+  geom_text(data=mpg[mpg$hwy>quantile(mpg$hwy,0.99),], aes(label=manufacturer),nudge_x = 0.2)
+```
+
+QQ plot
+
+```{r}
+ggplot(data=mpg, aes(sample=hwy))+
+  geom_qq_line()+
+  geom_qq()
+```
+
+color
+
+```{r}
+ggplot(data=mpg, aes(sample=hwy, color=drv))+
+  geom_qq_line()+
+  geom_qq()
+```
+
+Bar charts
+
+
+```{r}
+ggplot(data=mpg, aes(x=drv))+
+  geom_bar()
+```
+
+```{r}
+ggplot(data=mpg, aes(x=drv, y=hwy, fill=drv))+
+  geom_bar(stat='summary', fun='median', show.legend=F)
+
+```
+
+
+Flip it
+
+```{r}
+ggplot(data=mpg, aes(x=drv, y=hwy, fill=drv))+
+  geom_bar(stat='summary', fun='median', show.legend=F)+
+  coord_flip()
+```
+
+
+```{r}
+ggplot(data=mpg,aes(x=drv,fill=factor(year),y=hwy))+
+  geom_bar(stat = 'summary',fun='median')
+```
+
+The above chart does the job of representing a third variable, but it is hard to interpret. This is because year is stacked on for each drv, because the default argument for position is stack. Let us explicitly specify position as dodge.
+
+
+
+```{r}
+ggplot(data=mpg,aes(x=factor(drv),fill=factor(year),y=hwy))+
+  geom_bar(stat = 'summary', fun='mean', position='dodge')
+```
+
+Scatterplot
+
+```{r}
+ggplot(data=mpg,aes(x=displ,y=cty))+
+  geom_point()
+```
+
+3 variables
+
+```{r}
+ggplot(data=mpg,aes(x=displ,y=cty,color=factor(year)))+
+  geom_point()
+```
+
+
+ALPHA
+
+```{r}
+ggplot(data=mpg,aes(x=displ,y=cty,alpha=factor(year)))+
+  geom_point()+ggtitle('alpha aesthetic')
+```
+Line graphs
+```{r}
+
+ggplot(data=mpg,aes(x=displ,y=cty,color=factor(year)))+
+  geom_point()+
+  geom_smooth(method='lm',se=F,size=1.2)
+```
+
+  

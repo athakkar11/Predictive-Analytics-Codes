@@ -1,0 +1,139 @@
+---
+title: "Assignment 8b"
+format: html
+editor: visual
+---
+
+## Quarto
+
+Quarto enables you to weave together content and executable code into a finished document. To learn more about Quarto see <https://quarto.org>.
+
+## Running Code
+
+When you click the **Render** button a document will be generated that includes both content and the output of embedded code. You can embed code like this:
+
+```{r}
+1 + 1
+```
+
+You can add options to executable code like this
+
+```{r}
+#| echo: false
+2 * 2
+```
+
+The `echo: false` option disables the printing of code (only output is displayed).
+
+
+Assignment 8b
+
+
+Question 1
+Let us tune the hyperparameter cp (complexity parameter) for model tree constructed in the previous section. For tuning, use the library(caret) framework. Conduct 5-fold cross-validation to evaluate cp values from 0 to 0.01 in steps of 0.0001. Use a seed of 1031 right before the train function to ensure reproducibility of results.
+
+What is the value of cp that yields the lowest cross-validation error? If your answer does not match any of the alternatives, select the one closest to your answer.
+```{r}
+chocolate
+train
+
+tuneGrid = expand.grid(cp = seq(0,0.1,0.0001))
+
+library(caret)
+trControl = trainControl(method = 'cv',number = 5)
+set.seed(1031)
+tree_cv = train(rating~company_location+country_of_bean_origin+cocoa_percent+ingredient_Beans+ingredient_Sugar+ingredient_Cocoa_Butter+ingredient_vanilla+ingredient_lecithin+ingredient_salt+sweet+nutty+cocoa+roasty+earthy+creamy+sandy+fatty+floral+intense+spicy+sour+vanilla+fruit+molasses+woody+sticky+coffee+rich+dried.fruit,
+               data = train,
+               method = 'rpart',
+               trControl = trControl, 
+               tuneGrid = tuneGrid)
+
+summary(tree_cv)
+```
+
+```{r}
+tree_cv$results
+```
+
+```{r}
+# Filter the results table based on cp values
+filtered_results <- tree_cv$results[tree_cv$results$cp %in% c(0.01, 0.0001,  0.0046, 0.0021), ]
+
+# Access the RMSE values
+rmse_values <- filtered_results$RMSE
+
+# Print the RMSE values
+print(rmse_values)
+
+```
+
+```{r}
+# Filter the results table based on cp values
+filtered_results <- tree_cv$results[tree_cv$results$cp %in% c(0.0046), ]
+
+# Access the RMSE values
+rmse_values <- filtered_results$RMSE
+
+# Print the RMSE values
+print(rmse_values)
+```
+
+
+Question 2
+Use the best value of cp to re-run the model, tree. Call this model tuned_tree. What is the model RMSE? If your answer does not match any of the alternatives, select the one closest to your answer.
+
+```{r}
+tuned_tree = rpart(rating~company_location+country_of_bean_origin+cocoa_percent+ingredient_Beans+ingredient_Sugar+ingredient_Cocoa_Butter+ingredient_vanilla+ingredient_lecithin+ingredient_salt+sweet+nutty+cocoa+roasty+earthy+creamy+sandy+fatty+floral+intense+spicy+sour+vanilla+fruit+molasses+woody+sticky+coffee+rich+dried.fruit,data = train, method = 'anova', cp = 0.0046)
+
+
+pred_tuned_tree = predict(tuned_tree)
+rmse_tuned_tree = sqrt(mean((pred_tuned_tree - train$rating)^2)); rmse_tuned_tree
+
+pred_test_tuned_tree = predict(tuned_tree , newdata = test)
+rmse_test_tuned_tree = sqrt(mean((pred_test_tuned_tree - test$rating)^2)); rmse_test_tuned_tree
+```
+
+
+Question 3
+Now, construct an ensemble model comprising many trees. Specifically, fit a Bag model using the same predictors from the model, tree. For this question, use the function bagging() from library(ipred) setting number of bootstrapped samples or trees to 200. Use a seed of 1031 to ensure reproducibility of results. Call this model bag_ipred.
+
+What is the model RMSE? If your answer does not match any of the alternatives, select the one closest to your answer.
+
+```{r}
+library(ipred)
+set.seed(1031)
+
+bag_ipred = bagging(rating~company_location+country_of_bean_origin+cocoa_percent+ingredient_Beans+ingredient_Sugar+ingredient_Cocoa_Butter+ingredient_vanilla+ingredient_lecithin+ingredient_salt+sweet+nutty+cocoa+roasty+earthy+creamy+sandy+fatty+floral+intense+spicy+sour+vanilla+fruit+molasses+woody+sticky+coffee+rich+dried.fruit,
+              data = train, 
+              nbagg = 200)
+
+pred_train = predict(bag_ipred)
+rmse_train_bag_ipred = sqrt(mean((pred_train - train$rating)^2)); rmse_train_bag_ipred
+
+pred_test_bag_ipred = predict(bag_ipred , newdata = test)
+rmse_test_bag_ipred = sqrt(mean((pred_test_bag_ipred - test$rating)^2)); rmse_test_bag_ipred
+
+```
+
+
+Question 4
+As in the previous question, fit a Bag model but this time using library(randomForest). This can be done using the randomForest function with mtry=29 where 29 is the number of predictors. Set number of trees to 200. Use a seed of 1031 to ensure reproducibility of results. Call this model bag.
+
+What is the model RMSE? If your answer does not match any of the alternatives, select the one closest to your answer.
+
+```{r}
+library(randomForest)
+set.seed(1031)
+bag_randomForest = randomForest(rating~company_location+country_of_bean_origin+cocoa_percent+ingredient_Beans+ingredient_Sugar+ingredient_Cocoa_Butter+ingredient_vanilla+ingredient_lecithin+ingredient_salt+sweet+nutty+cocoa+roasty+earthy+creamy+sandy+fatty+floral+intense+spicy+sour+vanilla+fruit+molasses+woody+sticky+coffee+rich+dried.fruit, train, mtry = 29,
+                   ntree = 200)
+
+pred_train_randomForest = predict(bag_randomForest)
+rmse_train_bag_randomforest = sqrt(mean((pred_train_randomForest - train$rating)^2)); rmse_train_bag_randomforest
+
+pred_test_randomForest = predict(bag_randomForest, newdata = test)
+rmse_test_randomForest = sqrt(mean((pred_test_randomForest - test$rating)^2)); rmse_test_randomForest
+```
+
+
+Q5 Which of the following models constructed have the lowest RMSE in the test data
+Answer is bag - random forest model

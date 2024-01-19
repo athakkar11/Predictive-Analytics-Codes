@@ -1,0 +1,118 @@
+---
+title: "Assignment7C"
+format: html
+editor: visual
+---
+
+## Quarto
+
+Quarto enables you to weave together content and executable code into a finished document. To learn more about Quarto see <https://quarto.org>.
+
+## Running Code
+
+When you click the **Render** button a document will be generated that includes both content and the output of embedded code. You can embed code like this:
+
+```{r}
+1 + 1
+```
+
+You can add options to executable code like this
+
+```{r}
+#| echo: false
+2 * 2
+```
+
+The `echo: false` option disables the printing of code (only output is displayed).
+
+Assignment 7C
+
+```{r}
+games = read.csv('board_games.csv')
+games
+```
+
+```{r}
+str(games)
+
+library(caret)
+set.seed(1031)
+split = createDataPartition(y = games$rating, p = 0.70, list = F,groups = 200)
+train = games[split,]
+test = games[-split,]
+```
+
+Q1 In models `tree3` and `tree4` we examined the influence of game characteristics and category respectively on rating. Generally speaking, adding more meaningful predictors to a model will improve its predictive accuracy. Construct a regression tree that includes all the predictors used in `tree3` and `tree4`. Call this `tree5`. Specifically, `tree5` will include the following predictors: max_players, playtime, min_age, min_players, age_of_game, CardGame, Wargame, Fantasy, Fighting, Economic, Science.Fiction, Dice, Party.Game, AbstractStrategy, Childrens.Game, WorldWarII, Bluffing, Humor, Animals, Adventure, Medieval, Action.Dexterity, Deduction, Movies.TV.Radiotheme, Miniatures. What is the RMSE of `tree5`?
+
+```{r}
+tree5 = rpart(rating~max_players+playtime+min_age+age_of_game+CardGame+Wargame+Fantasy+Fighting+Economic+Science.Fiction+Dice+Party.Game+AbstractStrategy+Childrens.Game+WorldWarII+Bluffing+Humor+Animals+Adventure+Medieval+Action.Dexterity+Deduction+Movies.TV.Radiotheme+Miniatures,data = train, method = 'anova')
+summary(tree5)
+```
+
+```{r}
+rpart.plot(tree5)
+```
+
+```{r}
+pred5 = predict(tree5)
+pred5
+
+rmse5 = sqrt(mean((pred5 - train$rating)^2)); rmse5
+```
+
+Q2 The results of `tree5` may have been disheartening. Trees are flexible models that tend to overfit the data. To prevent this from occurring, rpart() has defaults that prevent the tree from becoming too complex. These defaults kept `tree5` from using all the features available. We will now change the complexity parameter to affect the size and complexity of the tree. Run tree5 again but this time explicitly set the complexity parameter to 0.005. Call this `tree6` and plot the tree. How many leaves does `tree6` have? (After you answer this question, you may also want to check the number of leaves in `tree5`.)
+
+```{r}
+tree6 = rpart(rating~max_players+playtime+min_age+age_of_game+CardGame+Wargame+Fantasy+Fighting+Economic+Science.Fiction+Dice+Party.Game+AbstractStrategy+Childrens.Game+WorldWarII+Bluffing+Humor+Animals+Adventure+Medieval+Action.Dexterity+Deduction+Movies.TV.Radiotheme+Miniatures,data = train, method = 'anova', control = rpart.control(cp = 0.005))
+
+rpart.plot(tree6)
+
+  
+
+
+```
+
+Q3 What is the RMSE of `tree6`?
+
+```{r}
+pred6 = predict(tree6)
+rmse6 = sqrt(mean((pred6 - train$rating)^2)); rmse6
+```
+
+Q4 Now, keep the same predictors that you used in tree6, construct three regression trees, tree7, tree8, and tree9 with cp values of 0.001, 0.0001, and 0.1 respectively. Which of the the following regression trees has the lowest RMSE?
+
+```{r}
+tree7 = rpart(rating~max_players+playtime+min_age+age_of_game+CardGame+Wargame+Fantasy+Fighting+Economic+Science.Fiction+Dice+Party.Game+AbstractStrategy+Childrens.Game+WorldWarII+Bluffing+Humor+Animals+Adventure+Medieval+Action.Dexterity+Deduction+Movies.TV.Radiotheme+Miniatures,data = train, method = 'anova', control = rpart.control(cp = 0.001))
+
+tree8 = rpart(rating~max_players+playtime+min_age+age_of_game+CardGame+Wargame+Fantasy+Fighting+Economic+Science.Fiction+Dice+Party.Game+AbstractStrategy+Childrens.Game+WorldWarII+Bluffing+Humor+Animals+Adventure+Medieval+Action.Dexterity+Deduction+Movies.TV.Radiotheme+Miniatures,data = train, method = 'anova', control = rpart.control(cp = 0.0001))
+
+tree9 = rpart(rating~max_players+playtime+min_age+age_of_game+CardGame+Wargame+Fantasy+Fighting+Economic+Science.Fiction+Dice+Party.Game+AbstractStrategy+Childrens.Game+WorldWarII+Bluffing+Humor+Animals+Adventure+Medieval+Action.Dexterity+Deduction+Movies.TV.Radiotheme+Miniatures,data = train, method = 'anova', control = rpart.control(cp = 0.1))
+
+pred7 = predict(tree7)
+rmse7 = sqrt(mean((pred7 - train$rating)^2)); rmse7
+
+pred8 = predict(tree8)
+rmse8 = sqrt(mean((pred8 - train$rating)^2)); rmse8
+
+pred9 = predict(tree9)
+rmse9 = sqrt(mean((pred9 - train$rating)^2)); rmse9
+```
+
+Q5 The ultimate test of a model comes from evaluating it on a dataset not used for estimating the model. Compute RMSE for tree5, tree6, tree7, tree8, and tree9 on the "test" sample. Which of the the following regression trees has the lowest RMSE?
+
+```{r}
+pred5_test = predict(tree5, newdata = test, type = 'vector')
+rmse5_test = sqrt(mean((pred5_test - test$rating)^2));rmse5_test
+
+pred6_test = predict(tree6, newdata = test, type = 'vector')
+rmse6_test = sqrt(mean((pred6_test - test$rating)^2));rmse6_test
+
+pred7_test = predict(tree7, newdata = test, type = 'vector')
+rmse7_test = sqrt(mean((pred7_test - test$rating)^2));rmse7_test
+
+pred8_test = predict(tree8, newdata = test, type = 'vector')
+rmse8_test = sqrt(mean((pred8_test - test$rating)^2));rmse8_test
+
+pred9_test = predict(tree9, newdata = test, type = 'vector')
+rmse9_test = sqrt(mean((pred9_test - test$rating)^2));rmse9_test
+```

@@ -1,0 +1,105 @@
+---
+title: "Assignment 2C"
+format: html
+editor: visual
+---
+
+## Quarto
+
+Quarto enables you to weave together content and executable code into a finished document. To learn more about Quarto see <https://quarto.org>.
+
+## Running Code
+
+When you click the **Render** button a document will be generated that includes both content and the output of embedded code. You can embed code like this:
+
+```{r}
+1 + 1
+```
+
+You can add options to executable code like this
+
+```{r}
+#| echo: false
+2 * 2
+```
+
+The `echo: false` option disables the printing of code (only output is displayed).
+
+```{r}
+install.packages('caret')
+library(caret)
+
+data(Sacramento)
+houses_missing = Sacramento
+set.seed(1031)
+for(i in 1:sample(150:300,1)){
+  set.seed(i)
+  x = sample(1:nrow(Sacramento), 1)
+  y = sample(c(3,4,5,7), 1)
+  houses_missing[x, y] = NA
+  }
+houses_missing
+```
+
+Question 1 (2 points)
+
+In the dataset, `houses_missing`, How many observations are missing? To answer this question, you have to count all the NA values.
+
+```{r}
+missing_count <- sum(is.na(houses_missing))
+ncol(houses_missing)
+missing_count
+```
+
+Q2 One way to address missing data is to delete all rows that contains missing data. If this was done with `houses_missing`, how many rows would be left?
+
+Hint: To answer this question, begin with a method for identifying a row with one or more NAs.
+
+```{r}
+rows_remaining <- sum(complete.cases(houses_missing))
+rows_remaining
+```
+
+Q3 Question 3 (2 points)
+
+Impute the missing values using the `rf` method for imputation in `mice`. Set seed to 1031. Use defaults for all other arguments. What is the imputed price for the house in row 44? This house is located in the city, Antelope, in zip code z95843, has 2 bedrooms and 2 baths, 1043 sqft and type is Residential.
+
+```{r}
+install.packages("mice")
+library(mice)
+```
+
+```{r}
+library(mice)
+houses_missing 
+houses_mice_randomForest = mice::complete(mice(houses_missing, method = 'rf', seed = 1031, rfPackage='randomForest'))  
+houses_mice_randomForest[44,]
+```
+
+Q4 Now, repeat the imputation process above but using the `cart` method in `mice`. Set seed to 1031. Use defaults for all other arguments. What is the imputed price for the house in row 44?
+
+```{r}
+
+
+houses_mice_cart = mice::complete(mice(houses_missing,method = 'cart',seed = 1031)) 
+houses_mice_cart[44,]
+```
+
+```{r}
+houses_missing
+```
+
+Question 5 (2 points) Saved Next, use the `preprocess` function from `library(caret)` to impute missing values. Set seed to 1031. Use the method `bagImpute`. Use defaults for all other arguments. What is the imputed price for the house in row 44?
+
+```{r}
+install.packages("ranger") #don't think so
+library(ranger) #don't think so
+
+
+library(caret)
+set.seed(1031)
+houses_caret = predict(preProcess(houses_missing, method = 'bagImpute'), newdata = houses_missing)
+houses_caret = preProcess(houses_missing, method = 'bagImpute',seed = 1031)
+head(houses_caret)
+houses_caret[44,]
+```

@@ -1,0 +1,129 @@
+---
+title: "Assignment 8a"
+format: html
+editor: visual
+---
+
+## Quarto
+
+Quarto enables you to weave together content and executable code into a finished document. To learn more about Quarto see <https://quarto.org>.
+
+## Running Code
+
+When you click the **Render** button a document will be generated that includes both content and the output of embedded code. You can embed code like this:
+
+```{r}
+1 + 1
+```
+
+You can add options to executable code like this
+
+```{r}
+#| echo: false
+2 * 2
+```
+
+The `echo: false` option disables the printing of code (only output is displayed).
+
+
+
+Assignment 8a
+
+
+```{r}
+chocolate = read.csv('/Users/anshitathakkar/Documents/Predictive Analytics/chocolate.csv', stringsAsFactors = T)
+chocolate
+```
+
+Question 1
+
+Read the data into chocolate using read.csv() setting the argument stringAsFactors = TRUE and assign it to an object called chocolate. The goal of this assignment is to develop models to accurately predict the rating of a chocolate. A constant or variable with no variance cannot be used for prediction. Run the following code to use the nearZeroVar function from library(caret) to inspect the data for variables with Zero Variance. Do this with the entire data, i.e., chocolate.
+
+
+```{r}
+library(caret)
+nearZeroVar(chocolate, saveMetrics = T, freqCut = 100)
+```
+
+Question 2
+Split the data into a train and test sample such that 70% of the data is in the train sample. To ensure a similar distribution of "rating" across the train and test samples, use createDataPartition from the caret package. Set groups to 40 and use a seed of 617. What is the mean rating in the train sample? [Unless stated otherwise, use the train sample for conducting analysis.]
+
+```{r}
+library(caret)
+set.seed(617)
+split = createDataPartition(y = chocolate$rating, p = 0.70, list = F,groups = 40)
+train = chocolate[split,]
+test = chocolate[-split,]
+
+
+train
+```
+
+```{r}
+mean(train$rating)
+```
+
+
+Question 3
+
+
+Construct a regression tree to predict rating only based on the location of the company and the origin of the bean. Specifically, only use company_location and country_of_bean_origin as predictors. Use model defaults. Call this model, tree_origin. What is the root mean squared error (RMSE)? If your answer does not match any of the alternatives, select the one closest to your answer.
+
+```{r}
+tree_origin = rpart(rating~company_location+country_of_bean_origin,data = train, method = 'anova')
+pred_train_origin = predict(tree_origin)
+rmse_train_origin = sqrt(mean((pred_train_origin - train$rating)^2)); rmse_train_origin
+```
+
+
+
+Quesiton 4
+
+Construct a regression tree to predict rating only based on the cocoa percent and ingredients. Specifically, only include the following variables: cocoa_percent, ingredient_Beans, ingredient_Sugar, ingredient_Cocoa_Butter, ingredient_vanilla, ingredient_lecithin, ingredient_salt.
+
+Use model defaults. Call this model, tree_ingredients. What is the model RMSE? If your answer does not match any of the alternatives, select the one closest to your answer.
+
+```{r}
+library(rpart); library(rpart.plot)
+
+tree_ingredients = rpart(rating~cocoa_percent+ingredient_Beans+ingredient_Sugar+ingredient_Cocoa_Butter+ingredient_vanilla+ingredient_lecithin+ingredient_salt,data = train, method = 'anova')
+pred_train_ingredients = predict(tree_ingredients)
+rmse_train_tree_ingredients = sqrt(mean((pred_train_ingredients - train$rating)^2)); rmse_train_tree_ingredients
+```
+
+Question 5
+Construct a regression tree to predict rating only based on the memorable characteristics of the chocolate. Specifically, only include the following variables: sweet, nutty, cocoa, roasty, earthy, creamy, sandy, fatty, floral, intense, spicy, sour, vanilla, fruit, molasses, woody, sticky, coffee, rich, dried.fruit
+
+Use model defaults. Call this model, tree_characteristics. What is the model RMSE? If your answer does not match any of the alternatives, select the one closest to your answer
+
+
+```{r}
+library(rpart); library(rpart.plot)
+
+tree_characteristics = rpart(rating~sweet+nutty+cocoa+roasty+earthy+creamy+sandy+fatty+floral+intense+spicy+sour+vanilla+fruit+molasses+woody+sticky+coffee+rich+dried.fruit,data = train, method = 'anova')
+pred_train_characteristics = predict(tree_characteristics)
+rmse_train_tree_characteristics = sqrt(mean((pred_train_characteristics - train$rating)^2)); rmse_train_tree_characteristics
+```
+
+Question 6
+Now, put the variables on origin, ingredients, and characteristics together in a single regression tree model. Specifically, include the following variables: company_location, country_of_bean_origin, cocoa_percent, ingredient_Beans, ingredient_Sugar, ingredient_Cocoa_Butter, ingredient_vanilla, ingredient_lecithin, ingredient_salt, sweet, nutty, cocoa, roasty, earthy, creamy, sandy, fatty, floral, intense, spicy, sour, vanilla, fruit, molasses, woody, sticky, coffee, rich, dried.fruit
+
+Use model defaults. Call this model, tree. What is the model RMSE? If your answer does not match any of the alternatives, select the one closest to your answer.
+
+```{r}
+library(rpart); library(rpart.plot)
+
+tree = rpart(rating~company_location+country_of_bean_origin+cocoa_percent+ingredient_Beans+ingredient_Sugar+ingredient_Cocoa_Butter+ingredient_vanilla+ingredient_lecithin+ingredient_salt+sweet+nutty+cocoa+roasty+earthy+creamy+sandy+fatty+floral+intense+spicy+sour+vanilla+fruit+molasses+woody+sticky+coffee+rich+dried.fruit,data = train, method = 'anova')
+pred_train_all = predict(tree)
+rmse_train_all = sqrt(mean((pred_train_all - train$rating)^2)); rmse_train_all
+
+pred_test_all = predict(tree, newdata = test)
+rmse_test_all = sqrt(mean((pred_test_all - test$rating)^2)); rmse_test_all
+```
+
+
+
+
+
+
+

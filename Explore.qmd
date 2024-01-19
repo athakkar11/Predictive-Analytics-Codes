@@ -1,0 +1,141 @@
+---
+title: "Index"
+format: html
+editor: visual
+---
+
+## Quarto
+
+Quarto enables you to weave together content and executable code into a finished document. To learn more about Quarto see <https://quarto.org>.
+
+## Running Code
+
+When you click the **Render** button a document will be generated that includes both content and the output of embedded code. You can embed code like this:
+
+```{r}
+1 + 1
+```
+
+You can add options to executable code like this
+
+```{r}
+#| echo: false
+2 * 2
+```
+
+The `echo: false` option disables the printing of code (only output is displayed).
+
+
+
+EXPLORE
+
+Index in R is that the position of 1 is 1, 2 is 2, 3 is 3
+1,1 is row 1 column 1
+1, 2 is row 1 column 2
+
+name_of_vector[2]
+Object name = name_of_vector
+[2] elements index
+
+
+DATA FRAME
+df[c(1,20), 4)] - this is rows 1 and 20 of column 4
+
+SUBSETTING
+
+■ team_salary[2,3,4] #The 4 here does nothing. The result yielded here will be in the 2 row and 3 column
+■ team_salary[4, - c(1,5)] # the minus sign removes everything but the specified element. It'll return everything but the first anf fifth column 
+```{r}
+
+```
+
+LOGICAL TEST
+
+4 != 5 
+One equal sign = is assignment
+== is trying to find out; this is why we use two equal signs
+
+```{r}
+4 == 5
+4 > 5
+5 > 4
+4 != 5
+```
+Logicals in Vector
+
+```{r}
+1:5 == 5
+1:5 > 5
+1:5 != 5
+```
+
+LOGICAL TESTS - MECHANISMS
+
+```{r}
+X = c(1, 2, 3, 4, 5, 6, 7)
+X
+X < 5 # Is x less than 5?
+X[X<5] #What are the values of x, less than 5 
+sum(X<5)
+sum(X<=5)
+sum(X==5)
+sum(X!=5)
+#This shoes how you subset it is less than 5?
+```
+More than one elements
+
+```{r}
+X<5 & X>3
+sum(X<5 & X>3)
+
+X<2 | X>5 # | this is or
+sum(X<2 | X>5)
+```
+Use of percentages
+%% are called wild cards
+
+Is 4 present in X
+Is 3 present in X
+Is 3 present in X; is 4 present in X
+
+```{r}
+4 %in% X
+sum(4 %in% X)
+
+3 %in% X
+sum(3 %in% X)
+
+c(3,4) %in% X
+sum(c(3,4) %in% X)
+```
+dplyr is used for subsetting and transforming data
+
+ library(dplyr) offers two functions for subsetting the data
+– Select Columns: select()
+– Select Rows: filter()
+
+
+SUBSETTING A LIST
+
+```{r}
+lst = list(c(1,2),TRUE,c("a","b","c"))
+lst
+```
+```{r}
+lst[1]
+lst[2]
+```
+```{r}
+sum(lst[[1]])
+```
+
+```{r}
+lst[[1]][1]
+lst[[1]][2]
+```
+
+```{r}
+lst[[2]][1]
+lst[[2]][2]
+```
+

@@ -1,0 +1,244 @@
+---
+title: "Modelling Framework 13 June"
+format: html
+editor: visual
+---
+
+## Quarto
+
+Quarto enables you to weave together content and executable code into a finished document. To learn more about Quarto see <https://quarto.org>.
+
+## Running Code
+
+When you click the **Render** button a document will be generated that includes both content and the output of embedded code. You can embed code like this:
+
+```{r}
+1 + 1
+```
+
+You can add options to executable code like this
+
+```{r}
+#| echo: false
+2 * 2
+```
+
+The `echo: false` option disables the printing of code (only output is displayed).
+
+MACHINE LEARNING Y = f(X) + ε Prediction Error (ε) = Reducible Error + Irreducible error (Var(ε)) You can link data points to the sale price of a house E.g. bedrooms, month of listing, area etc to house sale price this is what supervised learning tries to do
+
+```{r}
+House_Sale_Price = f(Area, Age, Number_of_Bathrooms, Month_of_Listing)
+House_Sale_Price
+```
+
+Choice mdoels v numeric predicitons
+
+```{r}
+set.seed(617)
+df = data.frame(true = 1:10, 
+                pred = round(1:10 + rnorm(10),1))
+                df
+```
+
+```{r}
+library(dplyr)
+df|>
+  mutate(baseline = mean(df$true), e = pred - true, basekube_e = baseline - true) |>
+  mutate(se = e^2, ape = abs(e))  #absolute error removes the error sign, squaring is less harsh than big errors  
+
+```
+
+```{r}
+df|>
+  mutate(baseline = mean(df$true), e = pred - true, basekube_e = baseline - true) |>
+  mutate(se = e^2, ape = 100*(abs(e)/true))|> #This gives us the percentage of the error
+  summarize(mse = mean(se), mape = mean(ape))
+```
+
+We want to take the true value and minus it by the predictive value rmse = root mean squared error
+
+```{r}
+(df$pred - df$true)
+(df$pred - df$true)^2 #squared error
+mean.difftime((df$pred - df$true)^2)
+rmse = sqrt(mean((df$pred - df$true)^2))
+rmse
+```
+
+Two more metrics
+
+R-squared value
+
+```{r}
+sse = sum((df$pred - df$true)^2). # this is squared 
+sst = sum((mean(df$true) - df$true)^2) # this is the total
+
+
+sse = sum((df$pred - df$true)^2)
+sst = sum((mean(df$true) - df$true)^2)
+1 - sse/sst
+```
+
+Mean Absolute Error
+
+```{r}
+mean(abs(df$pred - df$true)). # this is mean absolute percentage error 
+```
+
+CLassification problems
+
+```{r}
+set.seed(617)
+data = data.frame(true = rep(c(0,1),5), 
+                pred = round(runif(n = 10,min = 0,max = 1),2))
+data
+```
+
+The above table 0 is the event did not happen 1 is the event happened
+
+```{r}
+data |>
+  mutate(pred_di = as.integer(pred > 0.5))
+```
+
+```{r}
+data |>
+  mutate(pred_di = (pred > 0.5))
+```
+
+```{r}
+data |>
+  mutate(pred_di = as.integer(pred > 0.5)) |>
+           mutate(acc = true==pred_di)
+         
+```
+
+```{r}
+library(dplyr)
+data =
+  data |>
+  mutate(pred_di = as.integer(pred > 0.5)) 
+          
+
+data
+```
+
+```{r}
+ct = table(true = data$true, pred = data$pred_di) # we use data rather than df. Why?
+ct
+```
+
+Our accuracy is 3/10: 30% sensitivity is 1/5 and 2/5 are correct in each row = sensitivity How do you do this with code
+
+```{r}
+(ct[1,1]+ct[2,2])/nrow(data)
+```
+
+Another alterative is
+
+```{r}
+mean(data$true == data$pred_di) # the double equals ask
+```
+
+Larger the MSE, worse the model is
+
+We are creating train and test data sets
+
+```{r}
+library(ggplot2) 
+
+
+diamonds
+head(diamonds)
+str(diamonds)
+
+
+```
+
+```{r}
+1:nrow(diamonds)
+```
+
+THE BELOW IS VERY IMPORTANT
+
+```{r}
+set.seed(61710)
+split = sample(x = 1:nrow(diamonds),size = 0.7*nrow(diamonds))
+length(split)
+0.7*nrow(diamonds)
+
+#this is very important when testing a dataset. Memorise this code!
+
+library(ggplot2)
+set.seed(61710)
+split = sample(x = 1:nrow(diamonds),size = 0.7*nrow(diamonds))
+diamonds
+train = diamonds[split,]
+test = diamonds[-split,]
+
+train
+test
+
+
+nrow(diamonds)
+nrow(train)
+nrow(test)
+
+mean(train$price)
+mean(test$price)
+```
+
+```{r}
+library(dplyr)
+diamonds |>
+  arrange(price)
+```
+
+Using caret
+
+```{r}
+library(caret)
+set.seed(61710)
+split = createDataPartition(y = diamonds$price, p = 0.7, list = F,groups = 100)
+train = diamonds[split,]
+test = diamonds[-split,]
+mean(train$price)
+mean(test$price)
+```
+
+Using Caret, the means are much closer on price that they are above. Specific variables such as price are more effective than splitting a general sample = the process is called stratification
+
+```{r}
+diamonds$price_hilo = ifelse(diamonds$price>mean(diamonds$price),'High','Low')
+head(diamonds)
+set.seed(61710)
+split = createDataPartition(y = diamonds$price_hilo, p = 0.7, list = F)
+train = diamonds[split,]
+test = diamonds[-split,]
+
+round(prop.table(table(train$price_hilo)),2)
+round(prop.table(table(test$price_hilo)),2)
+```
+
+ANOTHER PACKAGE FOR THE SAME THING
+
+#- is not logical when using categorical variables
+
+```{r}
+install.packages("caTools")
+library(caTools)
+
+set.seed(61710)
+split = sample.split(Y = diamonds$price_hilo,SplitRatio = 0.7)
+train = diamonds[split,]
+test = diamonds[!split,] 
+nrow(train)
+nrow(test)
+round(prop.table(table(train$price_hilo)),2)
+round(prop.table(table(test$price_hilo)),2)
+```
+
+Statistical Inferences
+
+If p values is really lovw; p\<0.05 then we reject H0 and go with the alternative hypothesis (H1) If P value is less than alpha, we reject H0 and go with H1

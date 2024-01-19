@@ -1,0 +1,294 @@
+---
+title: "4. Linear Regression"
+format: html
+editor: visual
+---
+
+## Quarto
+
+Quarto enables you to weave together content and executable code into a finished document. To learn more about Quarto see <https://quarto.org>.
+
+## Running Code
+
+When you click the **Render** button a document will be generated that includes both content and the output of embedded code. You can embed code like this:
+
+```{r}
+1 + 1
+```
+
+You can add options to executable code like this
+
+```{r}
+#| echo: false
+2 * 2
+```
+
+The `echo: false` option disables the printing of code (only output is displayed).
+
+Class notes - slide 4
+
+The line in the graph represent the relationship between the x and y variables When the slope is 0, completely horizontal, there is no relationship. x axis = horizontal; y axis = vertical
+
+We use OLS by figuring out the estimates for B0 and B1
+
+Scatter plot - slide 10 (parent, child data) We intentionally put the parent on the x-axis because we would expect parent behavior to influence children's behavior. BLUE (best line unbiased estimator)
+
+Scatter plot - measure the distances from a point on the graph to the line, it is called ei. It represents misprediction. If you add it all up, you get 0
+
+We Sum ei = 0 e1\^2 + e2\^2 ...... = sum e1\^2
+
+sse
+
+sst - sse / sst = 1 - sse/sst (R\^2) measure 0 \<= R\^2 \<= 1
+
+Prediction x variable is the predictor (independent variable) Y variable is the outcome (dependent variable)
+
+Accuracy is measuresed by measuring he true value - predcited value = RMSE (it helps us measure how well we are predicting)
+
+Inferences
+
+We are going to do things with every model = inference and prediction
+
+Class 15 June 2023
+
+```{r}
+setwd('/Users/anshitathakkar/Documents/Predictive Analytics')
+earning = read.csv('/Users/anshitathakkar/Documents/Predictive Analytics/earning.csv')
+str(earning) #don't do this. First split the data and nly look at train data set
+
+library(caret)
+set.seed(1031)
+
+split = createDataPartition(y=earning$earn, p=0.7,list = F, groups = 20)
+train = earning[split,]
+test = earning[-split,] 
+str(train)
+
+```
+
+Simple regression
+
+```{r}
+library(ggplot2)
+
+install.packages('ggthemes')
+library(ggthemes)
+
+#we want to understand if people's age has a bearing on their earnings 
+ggplot(data=train,aes(x=age,y=earn))+ #we are looking at the impact of a number of variables on earnings; the outcome or dependent variable is earning
+  geom_point()+
+  coord_cartesian(ylim=c(0,400000))+ #this code zooms in on the numbers from 0 to 400,000
+  scale_y_continuous(labels = scales::label_dollar())+ #what does () mean here? It's a short cut for library. The scale adds a scale to the y axis 
+  theme_bw()
+```
+
+What does the graph above tell us about the relationship between earning and age? Is there a trend here? The word "relationship" is weaker than "effects". Or earning is related to age Relationship is a bidirectional arrow When you look at effect, you do a regression. When you look at a relationship, you do a correlation Correlation is a loser idea than regression
+
+```{r}
+cor(x = train$earn, train$age)
+```
+
+The above looks at the coorelationship between earning and age
+
+```{r}
+cor(train$age, train$earn)
+```
+
+The above shows the same; it doesn't matter which variable we put on the x or y axis as a correlation is a bi-drectional relationship between variables
+
+positive relationship = when one variable goes up, the other goes up too negative relationship = when one goes up, th other goes down 0 = no relationship
+
+```{r}
+cor.test(train$earn, train$age)
+
+#H0: r = 0
+#H1: r not equal to 0
+```
+
+As the correlation is above 0.05, r does not equal to 0. The correlation is statistically significant.
+
+```{r}
+ y ~ x
+
+earning = earning$earn ~ y
+age = earning$age ~ x
+
+y ~ x
+
+
+lm(formula = earn ~ age, data = train)
+
+```
+
+```{r}
+38160.2 + 271.8*24
+```
+
+modeling_function(formula = y \~ x, data = data)
+
+```{r}
+model = lm(formula = earn ~ age, data = train)
+summary(model)
+```
+
+```{r}
+model$Coefficients[1] + model$Coefficients[2]*24
+```
+
+```{r}
+predict(model)[1:10]
+```
+
+```{r}
+train$earn[1:10]
+```
+
+```{r}
+library(ggplot2)
+library(stats)
+library(datasets)
+library(dplyr)
+
+data.frame(age = train$age, pred_earn = predict(model), earn = train$earn) |>
+  mutate(e = pred_earn - earn)|>
+  mutate(se = e^2)
+```
+
+```{r}
+pred = predict(model)
+mse = mean((pred - train$earn)^2); mse
+rmse = sqrt(mean((pred - train$earn)^2)); rmse
+```
+
+```{r}
+sse = sum((pred = train$earn)^2)
+sst = sum((mean(train$earn) - train$earn)^2)
+1 - sse/sst #this is incorrect 
+```
+
+The above answer is incorect
+
+```{r}
+summary(model)
+```
+
+```{r}
+earn = 38160.2 + 271.83*age
+```
+
+How much more will a person earn with every passing year?
+
+```{r}
+earn_24 = 38160.2 + 271.83*24
+earn_25 = 38160.2 + 271.83*25
+earn_25 - earn_24
+```
+
+```{r}
+earn_22 = predict(model, newdata = data.frame(age=24))
+earn_25 = predict(model, newdata = data.frame(age=25))
+
+earn_25 - earn_24
+
+```
+
+AFTER BREAK 1
+
+```{r}
+str(earning)
+
+ggplot(data=earning, aes(x = weight, y = earn))+
+  geom_point()+
+  
+```
+
+20 June 2022
+
+Generalized Additive model
+
+```{r}
+install.packages('mgcv')
+library(mgcv)
+```
+
+```{r}
+model = lm(earn~age +  gender + height + weight + ethnicity + education + walk + exercise + smokenow + tense, data = train)
+model
+summary(model)
+
+model = lm(earn~age, train)
+pred = predict(model)
+rmse = sqrt(mean((pred - train$earn)^2)); rmse
+
+coef(model)
+names(train)
+```
+
+```{r}
+model = gam(earn~s(age),method='REML', data = train)
+summary(model)
+pred = predict(model)
+rmse = sqrt(mean((pred - train$earn)^2)); rmse
+
+coef(model)
+names(train)
+```
+
+Find out what r-squared means?
+
+
+If you don't know anything about the data, and don't really care about the meaning of the data, you can go with GAM.
+
+REML automatically figures out for us the optimal value 
+
+
+
+Doing it togehter
+
+```{r}
+model =  lm(earn~age + gender + height + weight + ethnicity + education + walk + exercise + smokenow + tense,data = train)
+model
+```
+
+GAM - gam is designed for measuring non-numeric variables;the difference below is that numeric and categorical variables are differently listed
+
+```{r}
+model = gam(earn~s(age)+gender+s(height)+s(weight)+ethnicity+s(education)+walk+exercise+smokenow+tense,method='REML', data = train)
+summary(model)
+pred = predict(model)
+rmse = sqrt(mean((pred - train$earn)^2)); rmse
+pret_test = predict(model, newdata = test) #this applies the model to test data 
+length(pred_test)
+pred_test
+```
+
+
+```{r}
+nrow(test)
+```
+
+```{r}
+data.frame(pred = pred_test, true = test$earn) [1:10,]
+```
+
+```{r}
+pred = predict(model)
+rmse = sqrt(mean((pred - train$earn)^2)); rmse
+pret_test = predict(model, newdata = test) #this applies the model to test data 
+rmse_test = sqrt(mean((pred_test - test$earn)^2)); rmse_test
+```
+
+
+```{r}
+model = gam(earn~s(age)+gender+s(height)+s(weight)+ethnicity+s(education)+walk+exercise+smokenow+tense,method='REML', data = train)
+summary(model)
+pred = predict(model)
+rmse = sqrt(mean((pred - train$earn)^2)); rmse
+pred_test = predict(model, newdata = test); pred #this applies the model to test data 
+rmse_test = sqrt(mean((pred_test - test$earn)^2)); rmse_test
+length(pred_test)
+pred_test
+```
+
+
+

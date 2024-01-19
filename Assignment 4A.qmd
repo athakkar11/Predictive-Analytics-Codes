@@ -1,0 +1,89 @@
+---
+title: "Assignment 4A"
+format: html
+editor: visual
+---
+
+## Quarto
+
+Quarto enables you to weave together content and executable code into a finished document. To learn more about Quarto see <https://quarto.org>.
+
+## Running Code
+
+When you click the **Render** button a document will be generated that includes both content and the output of embedded code. You can embed code like this:
+
+```{r}
+1 + 1
+```
+
+You can add options to executable code like this
+
+```{r}
+#| echo: false
+2 * 2
+```
+
+The `echo: false` option disables the printing of code (only output is displayed).
+
+```{r}
+taxi = read.csv('/Users/anshitathakkar/Documents/Predictive Analytics/taxi.csv')
+taxi
+```
+
+
+```{r}
+taxi$pickup_day = factor(x = taxi$pickup_day,levels = c('Mon','Tue','Wed','Thu','Fri','Sat','Sun')) 
+taxi$period_of_month = factor(x = taxi$period_of_month,levels = c('beginning','middle','end')) 
+taxi$period_of_day = factor(x = taxi$period_of_day, levels = c('morning','afternoon', 'evening','night'))
+```
+
+Question 1
+
+Read in the data using read.csv() and assign it to an object, taxi. Next, specify the levels for pickup_day, period_of_month, and period_of_day by running the following code.
+
+taxi = read.csv('taxi.csv') 
+taxi$pickup_day = factor(x = taxi$pickup_day,levels = c('Mon','Tue','Wed','Thu','Fri','Sat','Sun')) 
+taxi$period_of_month = factor(x = taxi$period_of_month,levels = c('beginning','middle','end')) 
+taxi$period_of_day = factor(x = taxi$period_of_day, levels = c('morning','afternoon', 'evening','night'))
+
+
+Next, split the data, taxi, into a train and test sample such that 70% of the data is in the train sample. To ensure a similar distribution of "tip_amount" across the train and test samples, use createDataPartition from library(caret). Set groups to 200 and use a seed of 1031. What is the median tip_amount in the train sample? [Unless stated otherwise, use the train sample for conducting analysis.]
+
+```{r}
+str(taxi)
+
+library(caret)
+set.seed(1031)
+split = createDataPartition(y=taxi$tip_amount,p = 0.7,list = F,groups = 200)
+train = taxi[split,]
+test = taxi[-split,]
+
+median(train$tip_amount)
+```
+
+
+Question 2
+
+Construct a scatter plot to examine the relationship between distance (trip_distance) and tip amount (tip_amount). Place trip_distance on the x-axis and tip_amount on the y-axis. What is the direction of the points?
+
+```{r}
+ggplot(data=train,aes(x=trip_distance,y=tip_amount))+
+  geom_point()+
+  coord_cartesian(ylim=c(0,40))+
+  scale_y_continuous(labels = scales::label_dollar())+
+  theme_bw()
+```
+
+Q 3 What is the correlation between trip_distance and tip_amount? (Do you see a link between the scatter plot and the correlation measure?)
+Which of the following variables has the strongest correlation with tip_amount?
+
+Question 4
+
+```{r}
+cor(train$tolls_amount, train$tip_amount)
+cor(train$trip_duration, train$tip_amount)
+cor(train$fare_amount, train$tip_amount)
+cor(train$trip_distance, train$tip_amount)
+```
+
+

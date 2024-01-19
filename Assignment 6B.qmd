@@ -1,0 +1,258 @@
+---
+title: "Assignment 6B"
+format: html
+editor: visual
+---
+
+## Quarto
+
+Quarto enables you to weave together content and executable code into a finished document. To learn more about Quarto see <https://quarto.org>.
+
+## Running Code
+
+When you click the **Render** button a document will be generated that includes both content and the output of embedded code. You can embed code like this:
+
+```{r}
+1 + 1
+```
+
+You can add options to executable code like this
+
+```{r}
+#| echo: false
+2 * 2
+```
+
+The `echo: false` option disables the printing of code (only output is displayed).
+
+
+Assignment 6B
+
+Q1
+ 
+Let's examine some algorithm driven ways of feature selection predictors for price. We are going to select from the following predictors:
+
+bedrooms, bathrooms, sqft_living, sqft_lot, floors, waterfront, view, condition, grade, age
+
+Evaluate all possible subsets to identify the best-six predictor model. Which of the following variables are included in the best six-predictor model? (Select all that apply)
+
+Question 1 options:
+
+bedrooms
+
+floors
+
+sqft_lot
+
+bathrooms
+
+sqft_living
+
+```{r}
+HouseSales = read.csv('/Users/anshitathakkar/Documents/Predictive Analytics/HouseSales.csv')
+HouseSales
+
+library(caret)
+set.seed(1031)
+split = createDataPartition(y=HouseSales$price,p = 0.7,list = F,groups = 100)
+train = HouseSales[split,]
+test = HouseSales[-split,]
+
+# install.packages('leaps')
+library(leaps)
+subsets = regsubsets(price~bedrooms+bathrooms+sqft_living+sqft_lot+floors+waterfront+view+condition+grade+age,data=train, nvmax=11)
+summary(subsets)
+```
+
+Q 2 What is the R2 for the best 6 predictor model?
+
+```{r}
+#names(summary(subsets))
+subsets_measures = data.frame(model=1:length(summary(subsets)$cp),
+                              cp=summary(subsets)$cp,
+                              bic=summary(subsets)$bic, 
+                              adjr2=summary(subsets)$adjr2)
+subsets_measures
+
+
+
+library(dplyr)
+library(tidyr)
+
+subsets_measures %>%
+  gather(key = type, value=value, 2:4)%>%
+  group_by(type)%>%
+  mutate(best_value = factor(ifelse(value == min(value) | value== max(value),0,1)))%>%
+  ungroup()%>%
+  ggplot(aes(x=model,y=value))+
+  geom_line(color='gray2')+
+  geom_point(aes(color = best_value), size=2.5)+
+  scale_x_discrete(limits = seq(1,11,1),name = 'Number of Variables')+
+  scale_y_continuous(name = '')+
+  guides(color=F)+
+  theme_bw()+
+  facet_grid(type~.,scales='free_y')
+
+
+model_6param = lm(price~bedrooms+bathrooms+sqft_living+sqft_lot+floors+waterfront+view+condition+grade+age,data = train)
+summary(model_6param)
+pred = predict(model_6param)
+sse = sum((pred - train$price)^2)
+sst = sum((mean(train$price)-train$price)^2)
+model_6param_r2 = 1 - sse/sst; model_6param_r2
+
+```
+
+Q3
+
+```{r}
+coef(subsets,which.min(summary(subsets)$cp))
+
+```
+
+
+Q4
+
+```{r}
+start_mod = lm(price~1,data=train)
+empty_mod = lm(price~1,data=train)
+full_mod = lm(price~bedrooms+bathrooms+sqft_living+sqft_lot+ 
+                floors+waterfront+view+condition+grade+age,data=train)
+forwardStepwise = step(start_mod,
+                       scope=list(upper=full_mod,lower=empty_mod),
+                       direction='forward')
+```
+Question 4 (4 points) 
+ 
+Now, run a backward stepwise regression model. As we did when choosing from all possible subsets, we are going to select from the following predictors.
+
+bedrooms, bathrooms, sqft_living, sqft_lot, floors, waterfront, view, condition, grade, age
+
+Which of the following variables were included in the best model? (Select all that apply)
+Question 4 options:
+
+sqft_living
+
+bathrooms
+
+floors
+
+bedrooms
+
+sqft_lot
+```{r}
+backwardStepwise = step(start_mod,
+                        scope=list(upper=full_mod,lower=empty_mod),
+                        direction='backward')
+
+backwardStepwise$anova %>% 
+  mutate(step_number = as.integer(rownames(backwardStepwise$anova))-1) %>%
+  mutate(Step = as.character(Step))%>%
+  ggplot(aes(x = reorder(Step,X = step_number), y = AIC))+
+  geom_point(color = 'darkgreen', size = 2) + 
+  scale_x_discrete(name = 'Variable Dropped')+
+  theme_bw() + 
+  theme(axis.text.x = element_text(angle = 45, vjust = 0.9, hjust=0.9))
+
+summary(backwardStepwise)
+```
+
+Q6
+
+```{r}
+library(glmnet)
+x = model.matrix(price~bedrooms+bathrooms+sqft_living+sqft_lot+ 
+                   floors+waterfront+view+condition+grade+age,data=train)
+y = train$price
+set.seed(1031)
+cv_lasso = cv.glmnet(x = x, 
+                     y = y, 
+                     alpha = 1,
+                     type.measure = 'mse')
+
+library(dplyr)
+coef(cv_lasso, s = cv_lasso$lambda.1se) %>%
+  round(4)
+```
+
+
+Q7 
+ Saved
+What is the R2 for the model selected by lasso?
+
+```{r}
+model_lasso = lm(price~bathrooms+sqft_living+waterfront+view+grade+age, data = train)
+summary(model_lasso)
+
+```
+
+
+Q8
+
+```{r}
+library(caret)
+trainPredictors = train[,c(3:11,16)]
+testPredictors = test[,c(3:11,16)]
+x = preProcess(x = trainPredictors,method = 'pca',thresh = 0.9)
+trainComponents = predict(x,newdata=trainPredictors)
+trainComponents$price = train$price
+```
+
+
+
+```{r}
+testComponents = predict(x,newdata=testPredictors)
+testComponents$price = test$price
+
+str(trainComponents)
+str(testComponents)
+
+pred = predict(train_model,newdata=testComponents)
+sse = sum((pred-testComponents$price)^2)
+sst = sum((mean(trainComponents$price) - testComponents$price)^2)
+r2_test = 1 - sse/sst
+r2_test
+
+
+```
+
+Q9 Question 9 (4 points) 
+ Saved
+Now, use only the components to predict price in the train sample. What is the R2?
+
+```{r}
+
+train_model = lm(price~.,trainComponents)
+summary(train_model)
+
+pred = predict(train_model,newdata=testComponents)
+sse = sum((pred-testComponents$price)^2)
+sst = sum((mean(trainComponents$price) - testComponents$price)^2)
+r2_test = 1 - sse/sst
+r2_test
+```
+Question 10 (4 points) 
+ Saved
+Next, let us impose the trained component structure on the test sample. Run the following code to do this.
+
+testComponents = predict(x,newdata=testPredictors) 
+testComponents$price = test$price
+Next, apply the train model created with components to the test-component dataset just created. Compute R2 on the test set. Remember R2 = 1 – sse/sst.
+
+What is the R2 in the test sample?
+Question 10 options:
+
+
+```{r}
+testComponents = predict(x,newdata=testPredictors) 
+testComponents$price = test$price
+
+pred = predict(train_model,newdata=testComponents)
+sse = sum((pred-testComponents$price)^2)
+sst = sum((mean(trainComponents$price) - testComponents$price)^2)
+r2_test = 1 - sse/sst
+r2_test
+```
+
+
+
